@@ -5,15 +5,13 @@ async fn index() -> String {
     String::from("Hello, rustech!\n")
 }
 
-async fn login(username: &str, password: &str) -> Result<reqwest::cookie::Cookie, Unauthorized<String>> {
-    let client = reqwest::Client::new();
+async fn login(username: &str, password: &str, client_option: Option<reqwest::Client>) -> Result<reqwest::Client, Unauthorized<String>> {
+    let client = client_option.unwrap_or(reqwest::Client::builder().cookie_store(true).build().map_err(|_| Unauthorized(Some("Unable to build the client".to_owned())))?);
     let login_url = "https://cas.sustech.edu.cn/cas/login";
     let mut execution = "".to_owned();
     // Get the execution
     {
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15".parse().unwrap());
-        let cas_html = client.get(login_url).headers(headers)
+        let cas_html = client.get(login_url)
                         .send()
                         .await.map_err(|_| Unauthorized(Some(String::from("Unable to send request to cas page"))))?
                         .text()
@@ -30,8 +28,6 @@ async fn login(username: &str, password: &str) -> Result<reqwest::cookie::Cookie
     }
 
     {
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15".parse().unwrap());
         // let login_post_body = format!("username={}&password={}&execution={}&_eventId=submit", username, password, execution);
         let login_post_form = [
                                 ("username", username), 
@@ -39,30 +35,16 @@ async fn login(username: &str, password: &str) -> Result<reqwest::cookie::Cookie
                                 ("execution", &execution),
                                 ("_eventId", "submit"),
                                 ("locale", "en")];
-        let login_resp = client.post(login_url).headers(headers).form(&login_post_form).send()
+        let login_resp = client.post(login_url).form(&login_post_form).send()
                                 .await.map_err(|_| Unauthorized(Some(String::from("Unable to send request to cas page"))))?;
-        
-        let mut tgc_cookie: Option<reqwest::cookie::Cookie> = None;
-        {
-            let login_received_cookies_borrowed = login_resp.cookies();
-            for cookie in login_received_cookies_borrowed {
-                if cookie.name() == "TGC" {
-                    tgc_cookie = Some(cookie);
-                }
-            }
-        }
 
-        if let None = tgc_cookie {
-            Err(Unauthorized(Some("Unable to find tgc in cookies".to_owned())))
+        let login_html = login_resp.text()
+                                    .await.map_err(|_| Unauthorized(Some("Unable to convert the response to HTML text".to_owned())))?;
+        if login_html.contains("Log In Successful") {
+            println!("{:?}", client);
+            Ok(client)
         } else {
-            let login_html = login_resp.text()
-                                    .await.map_err(|_| Unauthorized(Some(String::from("Unable to the response to HTML text"))))?;
-
-            if login_html.contains("Log In Successful") {
-                Ok(tgc_cookie)   
-            } else {
-                Err(Unauthorized(Some("Login failed!".to_owned())))
-            }
+            Err(Unauthorized(Some("Login Failed".to_owned())))
         }
         
         
@@ -71,28 +53,33 @@ async fn login(username: &str, password: &str) -> Result<reqwest::cookie::Cookie
 
 #[rocket::get("/cas_login?<username>&<password>")]
 async fn cas_login(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
-    login(username, password).await
+    let client = login(username, password, None).await?;
+    println!("{:?}", client);
+    Ok("Hello world!".to_owned())
 }
 
 #[rocket::get("/tis_login?<username>&<password>")]
 async fn tis_login(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
-    let client = reqwest::Client::new();
+    let mut client = reqwest::Client::builder().cookie_store(true).gzip(true).user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0").build().map_err(|_| Unauthorized(Some("Unable to build the client".to_owned())))?;
     let tis_cas_url = "https://cas.sustech.edu.cn/cas/login?service=https://tis.sustech.edu.cn/cas";
-    let tgc = login(username, password).await.map_err(|_| Unauthorized(Some("Unable to login".to_owned())))?;
+    client = login(username, password, Some(client)).await.map_err(|_| Unauthorized(Some("Unable to login".to_owned())))?;
 
     let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15".parse().unwrap());
+    headers.insert("Referer", reqwest::header::HeaderValue::from_static("https://tis.sustech.edu.cn/"));
+    headers.insert("Accept", reqwest::header::HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
+    headers.insert("Accept-Language", reqwest::header::HeaderValue::from_static("zh-cn"));
+    headers.insert("Accept-Encoding", reqwest::header::HeaderValue::from_static("gzip, deflate, br"));
 
-    let tis_cas_reps = client.get(tis_cas_url).headers(headers).
-
+    client.get(tis_cas_url).headers(headers).send()
+            .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    let tis_cas_reps = client.get("https://tis.sustech.edu.cn/user/basic").send().await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
     
-
-    Err(Unauthorized(Some("hello".to_owned())))
-
+    tis_cas_reps.text().await.map_err(|_| Unauthorized(Some("Unable to parse the tis_cas_reps to text".to_owned())))
 }
 
 #[rocket::launch]
 fn rocket() -> _ {
     rocket::build().mount("/", rocket::routes!(index))
                     .mount("/", rocket::routes!(cas_login))
+                    .mount("/", rocket::routes!(tis_login))
 }
