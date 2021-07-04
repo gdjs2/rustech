@@ -1288,6 +1288,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "serde",
+ "serde_json",
  "serde_urlencoded",
  "time",
  "tokio",
@@ -1398,6 +1399,8 @@ dependencies = [
  "reqwest",
  "rocket",
  "scraper",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

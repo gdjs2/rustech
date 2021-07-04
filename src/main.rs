@@ -1,5 +1,25 @@
 use rocket::response::status::Unauthorized;
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct BasicInfo {
+    id: String,
+    sid: String,
+    name: String,
+    email: String,
+    year: String,
+    department: String,
+    major: String
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct SemesterGPA {
+    semester_full_name: String,
+    semester_year: String,
+    semester_number: String,
+    gpa: f64
+}
+
+
 #[rocket::get("/")]
 async fn index() -> String {
     String::from("Hello, rustech!\n")
@@ -58,8 +78,8 @@ async fn cas_login(username: &str, password: &str) -> Result<String, Unauthorize
     Ok("Hello world!".to_owned())
 }
 
-#[rocket::get("/tis_login?<username>&<password>")]
-async fn tis_login(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
+// #[rocket::get("/tis_login?<username>&<password>")]
+async fn tis_login(username: &str, password: &str) -> Result<reqwest::Client, Unauthorized<String>> {
     let mut client = reqwest::Client::builder().cookie_store(true).gzip(true).user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0").build().map_err(|_| Unauthorized(Some("Unable to build the client".to_owned())))?;
     let tis_cas_url = "https://cas.sustech.edu.cn/cas/login?service=https://tis.sustech.edu.cn/cas";
     client = login(username, password, Some(client)).await.map_err(|_| Unauthorized(Some("Unable to login".to_owned())))?;
@@ -72,14 +92,62 @@ async fn tis_login(username: &str, password: &str) -> Result<String, Unauthorize
 
     client.get(tis_cas_url).headers(headers).send()
             .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
-    let tis_cas_reps = client.get("https://tis.sustech.edu.cn/user/basic").send().await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    // client.get("https://tis.sustech.edu.cn/user/basic").send().await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+
+    Ok(client)
+}
+
+#[rocket::get("/basic_info?<username>&<password>")]
+async fn basic_info(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
+
+    let client = tis_login(username, password).await?;
+    const BASIC_INFO_URL: &str = "https://tis.sustech.edu.cn/UserManager/queryxsxx";
+    let v: serde_json::Value = client.post(BASIC_INFO_URL).send()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                                        .json::<serde_json::Value>()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
     
-    tis_cas_reps.text().await.map_err(|_| Unauthorized(Some("Unable to parse the tis_cas_reps to text".to_owned())))
+    let basic_info = BasicInfo {
+        id: v["ID"].as_str().unwrap_or_default().to_owned(),
+        sid: v["XH"].as_str().unwrap_or_default().to_owned(),
+        name: v["XM"].as_str().unwrap_or_default().to_owned(),
+        email: v["DZYX"].as_str().unwrap_or_default().to_owned(),
+        year: v["NJMC"].as_str().unwrap_or_default().to_owned(),
+        department: v["YXMC"].as_str().unwrap_or_default().to_owned(),
+        major: v["ZYMC"].as_str().unwrap_or_default().to_owned()
+    };
+
+    Ok(serde_json::to_string_pretty(&basic_info).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+}
+
+// TODO
+#[rocket::get("/semester_gpa?<username>&<password>")]
+async fn semester_gpa(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
+
+    let client = tis_login(username, password).await?;
+    const SEMESTER_GPA_URL: &str = "https://tis.sustech.edu.cn/cjgl/xscjgl/xsgrcjcx/queryXnAndXqXfj";
+    let v: serde_json::Value = client.post(SEMESTER_GPA_URL).send()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                                        .json::<serde_json::Value>()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    
+    let semester_gpa = SemesterGPA {
+        id: v["ID"].as_str().unwrap_or_default().to_owned(),
+        sid: v["XH"].as_str().unwrap_or_default().to_owned(),
+        name: v["XM"].as_str().unwrap_or_default().to_owned(),
+        email: v["DZYX"].as_str().unwrap_or_default().to_owned(),
+        year: v["NJMC"].as_str().unwrap_or_default().to_owned(),
+        department: v["YXMC"].as_str().unwrap_or_default().to_owned(),
+        major: v["ZYMC"].as_str().unwrap_or_default().to_owned()
+    };
+
+    Ok(serde_json::to_string_pretty(&basic_info).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
 #[rocket::launch]
 fn rocket() -> _ {
     rocket::build().mount("/", rocket::routes!(index))
                     .mount("/", rocket::routes!(cas_login))
-                    .mount("/", rocket::routes!(tis_login))
+                    // .mount("/", rocket::routes!(tis_login))
+                    .mount("/", rocket::routes!(basic_info))
 }
