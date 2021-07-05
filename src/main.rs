@@ -120,7 +120,7 @@ async fn basic_info(username: &str, password: &str) -> Result<String, Unauthoriz
     Ok(serde_json::to_string_pretty(&basic_info).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
-// TODO
+// TODO Null and 0.0 is different, should use Option to different them
 #[rocket::get("/semester_gpa?<username>&<password>")]
 async fn semester_gpa(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
 
@@ -131,17 +131,19 @@ async fn semester_gpa(username: &str, password: &str) -> Result<String, Unauthor
                                                         .json::<serde_json::Value>()
                                                         .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
     
-    let semester_gpa = SemesterGPA {
-        id: v["ID"].as_str().unwrap_or_default().to_owned(),
-        sid: v["XH"].as_str().unwrap_or_default().to_owned(),
-        name: v["XM"].as_str().unwrap_or_default().to_owned(),
-        email: v["DZYX"].as_str().unwrap_or_default().to_owned(),
-        year: v["NJMC"].as_str().unwrap_or_default().to_owned(),
-        department: v["YXMC"].as_str().unwrap_or_default().to_owned(),
-        major: v["ZYMC"].as_str().unwrap_or_default().to_owned()
-    };
-
-    Ok(serde_json::to_string_pretty(&basic_info).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    let gpa_json_array = v["xnanxqxfj"].as_array().unwrap();
+    let mut gpa_array = Vec::<SemesterGPA>::new();
+    for gpa in gpa_json_array {
+        let semester_gpa = SemesterGPA {
+            semester_full_name: gpa["XNXQ"].as_str().unwrap_or_default().to_owned(),
+            semester_year: gpa["XN"].as_str().unwrap_or_default().to_owned(),
+            semester_number: gpa["XQ"].as_str().unwrap_or_default().to_owned(),
+            gpa: gpa["XQXFJ"].as_f64().unwrap_or_default()
+        };
+        gpa_array.push(semester_gpa);
+    }
+    
+    Ok(serde_json::to_string_pretty(&gpa_array).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
 #[rocket::launch]
@@ -150,4 +152,5 @@ fn rocket() -> _ {
                     .mount("/", rocket::routes!(cas_login))
                     // .mount("/", rocket::routes!(tis_login))
                     .mount("/", rocket::routes!(basic_info))
+                    .mount("/", rocket::routes!(semester_gpa))
 }
