@@ -1,4 +1,4 @@
-# RuSUSTechAPI
+# Rustech
 A Web API for SUSTech TIS written in RUST.
 
 一个 SUSTech 教务系统 (TIS) 的 API 封装。
