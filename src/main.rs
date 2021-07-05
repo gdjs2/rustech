@@ -16,7 +16,14 @@ struct SemesterGPA {
     semester_full_name: String,
     semester_year: String,
     semester_number: String,
-    gpa: f64
+    gpa: Option<f64>
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct StudentGPA {
+    all_gpa: std::vec::Vec<SemesterGPA>,
+    average_gpa: f64,
+    rank: String
 }
 
 
@@ -120,7 +127,6 @@ async fn basic_info(username: &str, password: &str) -> Result<String, Unauthoriz
     Ok(serde_json::to_string_pretty(&basic_info).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
-// TODO Null and 0.0 is different, should use Option to different them
 #[rocket::get("/semester_gpa?<username>&<password>")]
 async fn semester_gpa(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
 
@@ -138,12 +144,18 @@ async fn semester_gpa(username: &str, password: &str) -> Result<String, Unauthor
             semester_full_name: gpa["XNXQ"].as_str().unwrap_or_default().to_owned(),
             semester_year: gpa["XN"].as_str().unwrap_or_default().to_owned(),
             semester_number: gpa["XQ"].as_str().unwrap_or_default().to_owned(),
-            gpa: gpa["XQXFJ"].as_f64().unwrap_or_default()
+            gpa: gpa["XQXFJ"].as_f64()
         };
         gpa_array.push(semester_gpa);
     }
+
+    let student_gpa = StudentGPA {
+        all_gpa: gpa_array,
+        average_gpa: v["xfjandpm"]["PJXFJ"].as_f64().unwrap_or_default(),
+        rank: v["xfjandpm"]["PM"].as_str().unwrap_or_default().to_owned()
+    };
     
-    Ok(serde_json::to_string_pretty(&gpa_array).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    Ok(serde_json::to_string_pretty(&student_gpa).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
 #[rocket::launch]
