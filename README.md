@@ -22,7 +22,7 @@ This project will NOT be maintained regularly. So if you have good idea about re
 
 由于年级问题，这个项目不会被经常性地维护，所以如果你对如何改善它或者维护它有好的想法，欢迎跟我联系。如果你发现教务系统的接口更新了，你想更新这个项目，也欢迎提交 PR。
 
-Also, as I am not familiar with the front-end development. I am looking forward to the one who can help me to build a corresponding **front-end system** (WeChat Mini Program is prefered). As we know, the web application of TIS system is not compatible to the mobile device. So if you are interested in making such a front-end system, you can contact me. I have **EXTREMELY CONNECTION** with ITS of SUSTech, I can recommend our system to the ITS which may become expansion of our TIS system.
+Also, as I am not familiar with the front-end development. I am looking forward to the one who can help me to build a corresponding **front-end system** (WeChat Mini Program is prefered). As we know, the web application of TIS system is not compatible to the mobile device. So if you are interested in making such a front-end system, you can contact me. I have **EXTREMELY STRONG CONNECTION** with ITS of SUSTech, I can recommend our system to the ITS which may become expansion of our TIS system.
 
 同时，因为我不是很熟悉前端开发 （我的主要研究方向在系统安全），我在寻找可以帮助我写一个对应**前端**系统的同学（微信小程序优先）。众所周知，目前学校的教务系统还没有对移动端进行适配。如果你对这方面的开发感兴趣，非常欢迎联系我，我可以将我们的整个系统成品提交给学校信息中心，说不定能够成为学校教务系统的一个扩展（类似于校巴小程序）。
 
@@ -37,5 +37,14 @@ There are a lot of work to do to improve this project:
 - [ ] Encapsulate the course-select system. 封装选课 API。
 - [ ] Improve the code quality. 提高代码质量。（我是 Rust 新手 T.T）
 
-### Disclaimer
-All the TIS APIs which I use in this project can be found in https://tis.sustech/.edu.cn. During the test, I **ONLY** use the 
+### Disclaimer 免责声明
+All the TIS APIs which I use in this project can be found in https://tis.sustech/.edu.cn. During the test, I **ONLY** use the CAS account of mine. The APIs which are used in the project cannot be used illegally. All legal liability for unlawful calls to the TIS API is the responsibility of the caller. 
+
+程序当中所用到的所有接口都是 TIS 的公开接口。在整个测试过程当中，我仅仅使用了我自己的 CAS 账号。所有在本程序里公开的 TIS 接口都不能被非法的调用，因非法调用所产生的一切法律责任由调用者自行承担。
+
+### Contact Me 联系我
+SUSTecher is strongly welcome to contact me to maintain this project. 
+
+欢迎任何南科大的学生联系我，一起维护这个项目。
+
+e-mail: xzqgdjs2@icloud.com
