@@ -26,6 +26,17 @@ struct StudentGPA {
     rank: String
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct CourseGrade {
+    code: String,
+    name: String,
+    class_hour: String,
+    credit: u64,
+    semester: String,
+    final_grade: String,
+    department: String,
+}
+
 
 #[rocket::get("/")]
 async fn index() -> String {
@@ -137,25 +148,55 @@ async fn semester_gpa(username: &str, password: &str) -> Result<String, Unauthor
                                                         .json::<serde_json::Value>()
                                                         .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
     
-    let gpa_json_array = v["xnanxqxfj"].as_array().unwrap();
-    let mut gpa_array = Vec::<SemesterGPA>::new();
-    for gpa in gpa_json_array {
+    let gpa_value_array = v["xnanxqxfj"].as_array().unwrap();
+    let mut gpa_vec = Vec::<SemesterGPA>::new();
+    for gpa in gpa_value_array {
         let semester_gpa = SemesterGPA {
             semester_full_name: gpa["XNXQ"].as_str().unwrap_or_default().to_owned(),
             semester_year: gpa["XN"].as_str().unwrap_or_default().to_owned(),
             semester_number: gpa["XQ"].as_str().unwrap_or_default().to_owned(),
             gpa: gpa["XQXFJ"].as_f64()
         };
-        gpa_array.push(semester_gpa);
+        gpa_vec.push(semester_gpa);
     }
 
     let student_gpa = StudentGPA {
-        all_gpa: gpa_array,
+        all_gpa: gpa_vec,
         average_gpa: v["xfjandpm"]["PJXFJ"].as_f64().unwrap_or_default(),
         rank: v["xfjandpm"]["PM"].as_str().unwrap_or_default().to_owned()
     };
     
     Ok(serde_json::to_string_pretty(&student_gpa).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+}
+
+#[rocket::get("/course_grades?<username>&<password>")]
+async fn course_grades(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
+    let client = tis_login(username, password).await?;
+    const COURSE_GRADES_URL: &str = "https://tis.sustech.edu.cn/cjgl/grcjcx/grcjcx";
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert("Content-Type", reqwest::header::HeaderValue::from_static("application/json"));
+    let body = r#"{"xn":null,"xq":null,"kcmc":null,"cxbj":"-1","pylx":"1","current":1,"pageSize":100}"#;
+    let v: serde_json::Value = client.post(COURSE_GRADES_URL).headers(headers).body(body).send()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                                        .json::<serde_json::Value>()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    
+    let course_grades_value_vec = v["content"]["list"].as_array().unwrap();
+    let mut course_grades_vec = Vec::<CourseGrade>::new();
+    for course_grade_value in course_grades_value_vec {
+        let course_grade = CourseGrade {
+            code: course_grade_value["kcdm"].as_str().unwrap_or_default().to_owned(),
+            name: course_grade_value["kcmc"].as_str().unwrap_or_default().to_owned(),
+            class_hour: course_grade_value["xs"].as_str().unwrap_or_default().to_owned(),
+            credit: course_grade_value["xf"].as_u64().unwrap_or_default().to_owned(),
+            semester: course_grade_value["xnxqmc"].as_str().unwrap_or_default().to_owned(),
+            final_grade: course_grade_value["zzcj"].as_str().unwrap_or_default().to_owned(),
+            department: course_grade_value["yxmc"].as_str().unwrap_or_default().to_owned(),
+        };
+        course_grades_vec.push(course_grade);
+    }
+
+    Ok(serde_json::to_string_pretty(&course_grades_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
 #[rocket::launch]
@@ -165,4 +206,5 @@ fn rocket() -> _ {
                     // .mount("/", rocket::routes!(tis_login))
                     .mount("/", rocket::routes!(basic_info))
                     .mount("/", rocket::routes!(semester_gpa))
+                    .mount("/", rocket::routes!(course_grades))
 }
