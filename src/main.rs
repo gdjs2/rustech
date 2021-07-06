@@ -38,6 +38,14 @@ struct CourseGrade {
     department: String,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Course {
+    course_id: String,
+    course_name: String,
+    credits: f32,
+    department: String
+}
+
 
 #[rocket::get("/")]
 async fn index() -> String {
@@ -45,7 +53,7 @@ async fn index() -> String {
 }
 
 async fn login(username: &str, password: &str, client_option: Option<reqwest::Client>) -> Result<reqwest::Client, Unauthorized<String>> {
-    let client = client_option.unwrap_or(reqwest::Client::builder().cookie_store(true).build().map_err(|_| Unauthorized(Some("Unable to build the client".to_owned())))?);
+    let client = client_option.unwrap_or(reqwest::Client::builder().cookie_store(true).user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0").build().map_err(|_| Unauthorized(Some("Unable to build the client".to_owned())))?);
     let login_url = "https://cas.sustech.edu.cn/cas/login";
     let mut execution = "".to_owned();
     // Get the execution
@@ -202,6 +210,41 @@ async fn course_grades(username: &str, password: &str) -> Result<String, Unautho
     Ok(serde_json::to_string_pretty(&course_grades_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
+#[rocket::get("/courses")]
+async fn get_courses() -> Result<String, Unauthorized<String>> {
+    const COURSES_URL: &str = "https://course-tao.sustech.edu.cn/kcxxweb/KcxxwebChinesePC";
+    let courses_html = reqwest::get(COURSES_URL).await.map_err(|_| Unauthorized(Some("Unable to get courses from the web".to_owned())))?
+                                                .text().await.map_err(|_| Unauthorized(Some("Unable to get courses from the web".to_owned())))?;
+
+    let cas_fragment = scraper::Html::parse_fragment(&courses_html[..]);
+    let table_selector = scraper::Selector::parse("table").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
+                    
+    let mut table_iter = cas_fragment.select(&table_selector);
+    let _head_table = table_iter.next().unwrap();
+    // let option_selector = scraper::Selector::parse("option").map_err(|_| Unauthorized(Some("Unable to parse the option selector".to_owned())))?;
+    // let option_iter = head_table.select(&option_selector);
+    let tr_selector = scraper::Selector::parse("tr").map_err(|_| Unauthorized(Some("Unable to parse the option selector".to_owned())))?;
+    let td_selector = scraper::Selector::parse("td").map_err(|_| Unauthorized(Some("Unable to parse the option selector".to_owned())))?;
+    let a_selector = scraper::Selector::parse("a").map_err(|_| Unauthorized(Some("Unable to parse the option selector".to_owned())))?;
+    let mut courses_vec = Vec::<Course>::new();
+    for table in table_iter {
+        let mut tr_iter = table.select(&tr_selector);
+        tr_iter.next();
+        for tr in tr_iter {
+            // println!("{}", tr.inner_html());
+            let mut td_iter = tr.select(&td_selector);
+            let course = Course {
+                course_id: td_iter.next().unwrap().select(&a_selector).next().unwrap().inner_html(),
+                course_name: td_iter.next().unwrap().select(&a_selector).next().unwrap().inner_html(),
+                credits: td_iter.next().unwrap().inner_html().parse::<f32>().unwrap(),
+                department: td_iter.next().unwrap().inner_html()
+            };
+            courses_vec.push(course);
+        }
+    }
+    Ok(serde_json::to_string_pretty(&courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+}
+
 #[rocket::launch]
 fn rocket() -> _ {
     rocket::build().mount("/", rocket::routes!(index))
@@ -210,4 +253,5 @@ fn rocket() -> _ {
                     .mount("/", rocket::routes!(basic_info))
                     .mount("/", rocket::routes!(semester_gpa))
                     .mount("/", rocket::routes!(course_grades))
+                    .mount("/", rocket::routes!(get_courses))
 }

@@ -1,11 +1,11 @@
 import requests
 from bs4 import BeautifulSoup
-from elasticsearch import Elasticsearch
+# from elasticsearch import Elasticsearch
 
 COURSES_URL = "https://course-tao.sustech.edu.cn/kcxxweb/KcxxwebChinesePC"
 r = requests.get(COURSES_URL)
 soup = BeautifulSoup(r.text, "lxml")
-es = Elasticsearch()
+# es = Elasticsearch()
 
 tables = soup.find_all('table')
 
@@ -30,5 +30,7 @@ for table in tables:
 		course_list["credits"] = float(tds[2].string)
 		course_list["department"] = str(tds[4].string)
 		# es.index(index="sustech_courses", doc_type="course", body=course_list)
+		print(course_list)
+		exit(0)
 
 print("OK")
