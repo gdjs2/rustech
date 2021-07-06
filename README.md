@@ -32,7 +32,7 @@ There are a lot of work to do to improve this project:
 目前这个系统还有很多地方可以改进：
 
 - [ ] Build the database of cultivate scheme, and show the information of the cultivating situation of cuurent user. 维护一个培养方案的数据库，可以展示当前学生的培养方案情况，包括未修读课程等等。
-- [ ] Refine the data structure for the course grade. As I have no account which failed in any class, so the current data structure does not contains the grade information about failed courses. 改进储存课程成绩的结构体，因为我没有任何有过挂科情况课程，所以目前该数据结构还没有对这一块进行处理，初步感觉为了处理不同原因的挂科，教务系统在这里对分数是有特殊处理的。
+- [X] Refine the data structure for the course grade. As I have no account which failed in any class, so the current data structure does not contains the grade information about failed courses. 改进储存课程成绩的结构体，因为我没有任何有过挂科情况课程，所以目前该数据结构还没有对这一块进行处理，初步感觉为了处理不同原因的挂科，教务系统在这里对分数是有特殊处理的。
 - [ ] Refine the login logic. Now we are using a proxy-like way to login, which need the user to pass the password to our service. I prefer the front-end to redirect the user to the **OFFICIAL** CAS web page, and pass the ticket of the TIS system back to the web. 改进登录逻辑，目前我们使用的是代替用户进行 CAS 登录方案，但这个方案需要将用户的账号和密码发送到我们的后端，这在严谨的用户看来是非常不安全的行为（尽管学校很多私有系统都是采用的这种方案）。所以我想通过前端的重定向，将网页定向到学校官网的 CAS 登录页面，当用户登录完重定向至 TIS 的时候，前端能够将从 url 里面捕获到的 ticket 传递给后端，这样用户的登录账号以及密码就不用通过我们的后端，就能做到相对的安全。
 - [ ] Encapsulate the course-select system. 封装选课 API。
 - [ ] Improve the code quality. 提高代码质量。（我是 Rust 新手 T.T）
