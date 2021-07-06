@@ -34,6 +34,7 @@ struct CourseGrade {
     credit: u64,
     semester: String,
     final_grade: String,
+    final_level: String,
     department: String,
 }
 
@@ -79,7 +80,7 @@ async fn login(username: &str, password: &str, client_option: Option<reqwest::Cl
         let login_html = login_resp.text()
                                     .await.map_err(|_| Unauthorized(Some("Unable to convert the response to HTML text".to_owned())))?;
         if login_html.contains("Log In Successful") {
-            println!("{:?}", client);
+            // println!("{:?}", client);
             Ok(client)
         } else {
             Err(Unauthorized(Some("Login Failed".to_owned())))
@@ -91,8 +92,8 @@ async fn login(username: &str, password: &str, client_option: Option<reqwest::Cl
 
 #[rocket::get("/cas_login?<username>&<password>")]
 async fn cas_login(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
-    let client = login(username, password, None).await?;
-    println!("{:?}", client);
+    let _client = login(username, password, None).await?;
+    // println!("{:?}", client);
     Ok("Hello world!".to_owned())
 }
 
@@ -191,10 +192,12 @@ async fn course_grades(username: &str, password: &str) -> Result<String, Unautho
             credit: course_grade_value["xf"].as_u64().unwrap_or_default().to_owned(),
             semester: course_grade_value["xnxqmc"].as_str().unwrap_or_default().to_owned(),
             final_grade: course_grade_value["zzcj"].as_str().unwrap_or_default().to_owned(),
+            final_level: course_grade_value["xscj"].as_str().unwrap_or_default().to_owned(),
             department: course_grade_value["yxmc"].as_str().unwrap_or_default().to_owned(),
         };
         course_grades_vec.push(course_grade);
     }
+    println!("Total {} course grades item", course_grades_vec.len());
 
     Ok(serde_json::to_string_pretty(&course_grades_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
