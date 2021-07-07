@@ -16,6 +16,7 @@ All the APIs work with GET method with correct username (SID) and password for C
 2. `/basic_info?username=&password=`: Query the basic information of the students, which includes TIS ID, SID, name, email, the year getting into the SUSTech, department and major. 查询学生的基本信息，包括 TIS ID、学号、姓名、邮箱、入学年份、部门以及专业。
 3. `/semester_gpa?username=&password=`: Query the GPA in semester. This query will return a json object includes overall gpa, rank and an array of GPAs of each semester. 按学期查询 GPA，查询结果是一个 JSON 对象，包含了总体 GPA、排名以及一个存储了所有学期 GPA 的 JSON 数组。
 4. `/course_grades?username=&password=`: Query the grades of each course. This query will return a json array includes grade of each course. This API only query for the most recent 100 classes you finish as I have not found anyone could finish more than 100 courses during undergraduate. 按学科查询成绩，查询结果是一个 JSON 数组，包括了所有科目的成绩。因为目前还没有本科专业需要修超过 100 科课程，所以目前这个接口仅仅查询最近 100 科的成绩。
+5. `/courses`: Get all the courses from TAO of SUSTech. 从本科生教育网上获取所有的本科生课程。
 
 ### Maintainance 维护
 This project will NOT be maintained regularly. So if you have good idea about refine it or the APIs of TIS has changed and you want to make it compatible to new system, PR is welcomed!!!
@@ -36,6 +37,7 @@ There are a lot of work to do to improve this project:
 - [ ] Refine the login logic. Now we are using a proxy-like way to login, which need the user to pass the password to our service. I prefer the front-end to redirect the user to the **OFFICIAL** CAS web page, and pass the ticket of the TIS system back to the web. 改进登录逻辑，目前我们使用的是代替用户进行 CAS 登录方案，但这个方案需要将用户的账号和密码发送到我们的后端，这在严谨的用户看来是非常不安全的行为（尽管学校很多私有系统都是采用的这种方案）。所以我想通过前端的重定向，将网页定向到学校官网的 CAS 登录页面，当用户登录完重定向至 TIS 的时候，前端能够将从 url 里面捕获到的 ticket 传递给后端，这样用户的登录账号以及密码就不用通过我们的后端，就能做到相对的安全。
 - [ ] Encapsulate the course-select system. 封装选课 API。
 - [ ] Improve the code quality. 提高代码质量。（我是 Rust 新手 T.T）
+- [ ] Add the API to get all courses. 添加查询所有课程的接口。
 
 ### Disclaimer 免责声明
 All the TIS APIs which I use in this project can be found in https://tis.sustech/.edu.cn. During the test, I **ONLY** use the CAS account of mine. The APIs which are used in the project cannot be used illegally. All legal liability for unlawful calls to the TIS API is the responsibility of the caller. 
