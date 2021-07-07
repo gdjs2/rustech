@@ -52,7 +52,8 @@ struct SelectedCourse {
     course_type: String,
     course_class: String,
     teacher: String,
-    time_and_place: String
+    time_and_place: String,
+    available: bool
 }
 
 
@@ -279,6 +280,11 @@ async fn selected_courses(username: &str, password: &str, semester_year: &str, s
             },
             course_class: value["rwmc"].as_str().unwrap().to_owned(),
             course_type: value["kclbmc"].as_str().unwrap().to_owned(),
+            available: match value["sxbj"].as_str().unwrap() {
+                "0" => { false },
+                "1" => { true },
+                _ => {false}
+            },
             teacher: value["dgjsmc"].as_str().unwrap().to_owned(),
             time_and_place: {
                 let course_info_html = value["kcxx"].as_str().unwrap();
