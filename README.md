@@ -39,7 +39,9 @@ There are a lot of work to do to improve this project:
 - [ ] Refine the login logic. Now we are using a proxy-like way to login, which need the user to pass the password to our service. I prefer the front-end to redirect the user to the **OFFICIAL** CAS web page, and pass the ticket of the TIS system back to the web. 改进登录逻辑，目前我们使用的是代替用户进行 CAS 登录方案，但这个方案需要将用户的账号和密码发送到我们的后端，这在严谨的用户看来是非常不安全的行为（尽管学校很多私有系统都是采用的这种方案）。所以我想通过前端的重定向，将网页定向到学校官网的 CAS 登录页面，当用户登录完重定向至 TIS 的时候，前端能够将从 url 里面捕获到的 ticket 传递给后端，这样用户的登录账号以及密码就不用通过我们的后端，就能做到相对的安全。
 - [ ] Encapsulate the course-select system. 封装选课 API。
 - [ ] Improve the code quality. 提高代码质量。（我是 Rust 新手 T.T）
-- [ ] Add the API to get all courses. 添加查询所有课程的接口。
+- [x] Add the API to get all courses. 添加查询所有课程的接口。
+- [x] Add the API to get selected courses. 添加查询所有已选课程的接口。
+- [x] Add the API to get available courses. 添加查询所有可选课程的接口。
 
 ### Disclaimer 免责声明
 All the TIS APIs which I use in this project can be found in https://tis.sustech/.edu.cn. During the test, I **ONLY** use the CAS account of mine. The APIs which are used in the project cannot be used illegally. All legal liability for unlawful calls to the TIS API is the responsibility of the caller. 
