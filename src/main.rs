@@ -43,7 +43,7 @@ struct Course {
     course_id: String,
     course_name: String,
     credits: f32,
-    department: String
+    department: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -53,7 +53,8 @@ struct SelectedCourse {
     course_class: String,
     teacher: String,
     time_and_place: String,
-    available: bool
+    available: bool,
+    id: String
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -62,7 +63,8 @@ struct AvailableCourse {
     course_type: String,
     course_class: String,
     teacher: String,
-    time_and_place: String
+    time_and_place: String,
+    id: String
 }
 
 
@@ -135,6 +137,8 @@ async fn tis_login(username: &str, password: &str) -> Result<reqwest::Client, Un
     headers.insert("Accept", reqwest::header::HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
     headers.insert("Accept-Language", reqwest::header::HeaderValue::from_static("zh-cn"));
     headers.insert("Accept-Encoding", reqwest::header::HeaderValue::from_static("gzip, deflate, br"));
+    // headers.insert("RoleCode", reqwest::header::HeaderValue::from_static("01"));
+    // headers.insert("Host", reqwest::header::HeaderValue::from_static("tis.sustech.edu.cn"));
 
     client.get(tis_cas_url).headers(headers).send()
             .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
@@ -289,6 +293,7 @@ async fn selected_courses(username: &str, password: &str, semester_year: &str, s
             },
             course_class: value["rwmc"].as_str().unwrap().to_owned(),
             course_type: value["kclbmc"].as_str().unwrap().to_owned(),
+            id: value["id"].as_str().unwrap().to_owned(),
             available: match value["sxbj"].as_str().unwrap() {
                 "0" => { false },
                 "1" => { true },
@@ -341,11 +346,12 @@ async fn available_courses(username: &str, password: &str, semester_year: &str, 
                 course_id: value["kcdm"].as_str().unwrap().to_owned(),
                 course_name: value["kcmc"].as_str().unwrap().to_owned(),
                 credits: value["xf"].as_str().unwrap().parse::<f32>().map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?,
-                department: value["kkyxmc"].as_str().unwrap().to_owned()
+                department: value["kkyxmc"].as_str().unwrap().to_owned(),
             },
             course_class: value["rwmc"].as_str().unwrap().to_owned(),
             course_type: value["kclbmc"].as_str().unwrap().to_owned(),
             teacher: value["dgjsmc"].as_str().unwrap().to_owned(),
+            id: value["id"].as_str().unwrap().to_owned(),
             time_and_place: {
                 let course_info_html = value["kcxx"].as_str().unwrap();
                 let course_info_fragment = scraper::Html::parse_fragment(&course_info_html);
@@ -359,7 +365,40 @@ async fn available_courses(username: &str, password: &str, semester_year: &str, 
         available_courses_vec.push(course);
     }
     Ok(serde_json::to_string_pretty(&available_courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+}
 
+// Not work well. Fix by adding status in the server.
+#[rocket::get("/select_course?<username>&<password>&<semester_year>&<semester_no>&<course_id>&<course_type>&<points>")]
+async fn select_course(username: &str, password: &str, semester_year: &str, semester_no: &str, course_id: &str, course_type: &str, points: &str) -> Result<String, Unauthorized<String>> {
+    let client = tis_login(username, password).await?;
+    const SELECT_COURSE_URL: &str = "https://tis.sustech.edu.cn/Xsxk/addGouwuche"; // WTF???? 购物车？？？
+    let code_p_xkfsdm = match course_type {
+        "GR" => "bxxk", //  General Required
+        "GE" => "xxxk", //  General Elective
+        "TP" => "kzyxk", //  Courses within the training program
+        "NTP" => "zynknjxk", //  Courses without the training program
+        _ => ""
+    };
+    let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    post_form.insert("p_xn", semester_year);
+    post_form.insert("p_xq", semester_no);
+    post_form.insert("p_id", course_id);
+    post_form.insert("p_xkxs", points);
+    post_form.insert("p_pylx", "1");
+    post_form.insert("p_xkfsdm", code_p_xkfsdm);
+    post_form.insert("p_xktjz", "rwtjzyx");
+
+    let v: serde_json::Value = client.post(SELECT_COURSE_URL).form(&post_form).send()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                                        .json::<serde_json::Value>()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+
+    println!("{}", serde_json::to_string_pretty(&v).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?);
+    if v["gjhczztm"].as_str().unwrap() == "OPERATE.RESULT_SUCCESS" {
+        return Ok("SUCCESS".to_owned());
+    } else {
+        return Err(Unauthorized(Some(v["message"].as_str().unwrap().to_owned())));
+    }
 }
 
 #[rocket::launch]
@@ -373,4 +412,5 @@ fn rocket() -> _ {
                     .mount("/", rocket::routes!(get_courses))
                     .mount("/", rocket::routes!(selected_courses))
                     .mount("/", rocket::routes!(available_courses))
+                    .mount("/", rocket::routes!(select_course))
 }
