@@ -56,6 +56,15 @@ struct SelectedCourse {
     available: bool
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct AvailableCourse {
+    basic_course: Course,
+    course_type: String,
+    course_class: String,
+    teacher: String,
+    time_and_place: String
+}
+
 
 #[rocket::get("/")]
 async fn index() -> String {
@@ -188,8 +197,8 @@ async fn semester_gpa(username: &str, password: &str) -> Result<String, Unauthor
     Ok(serde_json::to_string_pretty(&student_gpa).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
-#[rocket::get("/course_grades?<username>&<password>")]
-async fn course_grades(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
+#[rocket::get("/courses_grades?<username>&<password>")]
+async fn courses_grades(username: &str, password: &str) -> Result<String, Unauthorized<String>> {
     let client = tis_login(username, password).await?;
     const COURSE_GRADES_URL: &str = "https://tis.sustech.edu.cn/cjgl/grcjcx/grcjcx";
     let mut headers = reqwest::header::HeaderMap::new();
@@ -317,15 +326,17 @@ async fn available_courses(username: &str, password: &str, semester_year: &str, 
     post_form.insert("p_xkfsdm", code_p_xkfsdm);
     post_form.insert("p_xn", semester_year);
     post_form.insert("p_xq", semester_no);
-    let v: serde_json::Value = client.post(SELECTED_COURSES_URL).form(&post_form).send()
+    let v: serde_json::Value = client.post(AVAILABLE_COURSES_URL).form(&post_form).send()
                                                         .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
                                                         .json::<serde_json::Value>()
                                                         .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
-    let available_courses_value = v["yxkcList"].as_array().unwrap();
-    let mut available_courses_vec = Vec::<SelectedCourse>::new();
+
+    let available_courses_value = v["kxrwList"]["list"].as_array().unwrap();
+    
+    let mut available_courses_vec = Vec::<AvailableCourse>::new();
 
     for value in available_courses_value {
-        let course = SelectedCourse {
+        let course = AvailableCourse {
             basic_course: Course {
                 course_id: value["kcdm"].as_str().unwrap().to_owned(),
                 course_name: value["kcmc"].as_str().unwrap().to_owned(),
@@ -334,11 +345,6 @@ async fn available_courses(username: &str, password: &str, semester_year: &str, 
             },
             course_class: value["rwmc"].as_str().unwrap().to_owned(),
             course_type: value["kclbmc"].as_str().unwrap().to_owned(),
-            // available: match value["sxbj"].as_str().unwrap() {
-            //     "0" => { false },
-            //     "1" => { true },
-            //     _ => {false}
-            // },
             teacher: value["dgjsmc"].as_str().unwrap().to_owned(),
             time_and_place: {
                 let course_info_html = value["kcxx"].as_str().unwrap();
@@ -350,12 +356,10 @@ async fn available_courses(username: &str, password: &str, semester_year: &str, 
                 p
             }
         };
-        selected_courses_vec.push(course);
+        available_courses_vec.push(course);
     }
-    Ok(serde_json::to_string_pretty(&selected_courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    Ok(serde_json::to_string_pretty(&available_courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 
-
-    Ok("available courses".to_owned())
 }
 
 #[rocket::launch]
@@ -365,7 +369,8 @@ fn rocket() -> _ {
                     // .mount("/", rocket::routes!(tis_login))
                     .mount("/", rocket::routes!(basic_info))
                     .mount("/", rocket::routes!(semester_gpa))
-                    .mount("/", rocket::routes!(course_grades))
+                    .mount("/", rocket::routes!(courses_grades))
                     .mount("/", rocket::routes!(get_courses))
                     .mount("/", rocket::routes!(selected_courses))
+                    .mount("/", rocket::routes!(available_courses))
 }
