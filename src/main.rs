@@ -301,6 +301,63 @@ async fn selected_courses(username: &str, password: &str, semester_year: &str, s
     Ok(serde_json::to_string_pretty(&selected_courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
+#[rocket::get("/available_courses?<username>&<password>&<semester_year>&<semester_no>&<courses_type>")]
+async fn available_courses(username: &str, password: &str, semester_year: &str, semester_no: &str, courses_type: &str) -> Result<String, Unauthorized<String>> {
+    let client = tis_login(username, password).await?;
+    const AVAILABLE_COURSES_URL: &str = "https://tis.sustech.edu.cn/Xsxk/queryKxrw";
+    let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    let code_p_xkfsdm = match courses_type {
+        "GR" => "bxxk", //  General Required
+        "GE" => "xxxk", //  General Elective
+        "TP" => "kzyxk", //  Courses within the training program
+        "NTP" => "zynknjxk", //  Courses without the training program
+        _ => ""
+    };
+
+    post_form.insert("p_xkfsdm", code_p_xkfsdm);
+    post_form.insert("p_xn", semester_year);
+    post_form.insert("p_xq", semester_no);
+    let v: serde_json::Value = client.post(SELECTED_COURSES_URL).form(&post_form).send()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                                        .json::<serde_json::Value>()
+                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    let available_courses_value = v["yxkcList"].as_array().unwrap();
+    let mut available_courses_vec = Vec::<SelectedCourse>::new();
+
+    for value in available_courses_value {
+        let course = SelectedCourse {
+            basic_course: Course {
+                course_id: value["kcdm"].as_str().unwrap().to_owned(),
+                course_name: value["kcmc"].as_str().unwrap().to_owned(),
+                credits: value["xf"].as_str().unwrap().parse::<f32>().map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?,
+                department: value["kkyxmc"].as_str().unwrap().to_owned()
+            },
+            course_class: value["rwmc"].as_str().unwrap().to_owned(),
+            course_type: value["kclbmc"].as_str().unwrap().to_owned(),
+            // available: match value["sxbj"].as_str().unwrap() {
+            //     "0" => { false },
+            //     "1" => { true },
+            //     _ => {false}
+            // },
+            teacher: value["dgjsmc"].as_str().unwrap().to_owned(),
+            time_and_place: {
+                let course_info_html = value["kcxx"].as_str().unwrap();
+                let course_info_fragment = scraper::Html::parse_fragment(&course_info_html);
+                let div_selector = scraper::Selector::parse("div").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
+                let mut div_iter = course_info_fragment.select(&div_selector);
+                let p_selector = scraper::Selector::parse("p").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
+                let p = div_iter.next().unwrap().select(&p_selector).next().unwrap().inner_html();
+                p
+            }
+        };
+        selected_courses_vec.push(course);
+    }
+    Ok(serde_json::to_string_pretty(&selected_courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+
+
+    Ok("available courses".to_owned())
+}
+
 #[rocket::launch]
 fn rocket() -> _ {
     rocket::build().mount("/", rocket::routes!(index))
