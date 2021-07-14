@@ -110,7 +110,7 @@ async fn get_execution_code(
     let inputs = cas_fragment.select(&input_selector);
     let execution_code_input = inputs.filter(|e| e.value().attr("name").unwrap_or_default() == "execution").next();
     if let Some(input) = execution_code_input {
-        return Ok(input);
+        return Ok(input.value().attr("value").unwrap());
     } else {
         return Err(status::Unauthorized(Some(String::from("Cannot find the input with execution code"))));
     }
