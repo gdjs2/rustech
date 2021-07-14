@@ -1,96 +1,45 @@
-use rocket::response::status::Unauthorized;
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct BasicInfo {
-    id: String,
-    sid: String,
-    name: String,
-    email: String,
-    year: String,
-    department: String,
-    major: String
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct SemesterGPA {
-    semester_full_name: String,
-    semester_year: String,
-    semester_number: String,
-    gpa: Option<f64>
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct StudentGPA {
-    all_gpa: std::vec::Vec<SemesterGPA>,
-    average_gpa: f64,
-    rank: String
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct CourseGrade {
-    code: String,
-    name: String,
-    class_hour: String,
-    credit: u64,
-    semester: String,
-    final_grade: String,
-    final_level: String,
-    department: String,
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct Course {
-    course_id: String,
-    course_name: String,
-    credits: f32,
-    department: String,
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct SelectedCourse {
-    basic_course: Course,
-    course_type: String,
-    course_class: String,
-    teacher: String,
-    time_and_place: String,
-    available: bool,
-    id: String
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct AvailableCourse {
-    basic_course: Course,
-    course_type: String,
-    course_class: String,
-    teacher: String,
-    time_and_place: String,
-    id: String
-}
-
+use rocket::response::status;
 
 #[rocket::get("/")]
 async fn index() -> String {
     String::from("Hello, rustech!\n")
 }
 
-async fn login(username: &str, password: &str, client_option: Option<reqwest::Client>) -> Result<reqwest::Client, Unauthorized<String>> {
-    let client = client_option.unwrap_or(reqwest::Client::builder().cookie_store(true).user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0").build().map_err(|_| Unauthorized(Some("Unable to build the client".to_owned())))?);
-    let login_url = "https://cas.sustech.edu.cn/cas/login";
-    let mut execution = "".to_owned();
+async fn login(
+    username: &str, 
+    password: &str, 
+    client_option: Option<reqwest::Client>
+) -> Result<reqwest::Client, status::Unauthorized<String>> 
+{
+    let client = client_option
+                            .unwrap_or(reqwest::Client::builder()
+                                            .cookie_store(true)
+                                            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0")
+                                            .build()
+                                            .map_err(|_| status::Unauthorized(Some(String::from("Unable to build the client"))))?
+                                        );
+    const LOGIN_URL: &str = "https://cas.sustech.edu.cn/cas/login";
+    let mut execution = String::new();
+
     // Get the execution
     {
-        let cas_html = client.get(login_url)
-                        .send()
-                        .await.map_err(|_| Unauthorized(Some(String::from("Unable to send request to cas page"))))?
-                        .text()
-                        .await.map_err(|_| Unauthorized(Some(String::from("Unable to the response to HTML text"))))?;
-        let cas_fragment = scraper::Html::parse_fragment(&cas_html[..]);
-        let input_selector = scraper::Selector::parse("input").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
+        let cas_html = client.get(LOGIN_URL)
+                                    .send()
+                                    .await
+                                    .map_err(|_| status::Unauthorized(Some(String::from("Unable to send request to cas page"))))?
+                                    .text()
+                                    .await
+                                    .map_err(|_| status::Unauthorized(Some(String::from("Unable to the response to HTML text"))))?;
+
+        let cas_fragment = scraper::Html::parse_fragment(&cas_html);
+        let input_selector = scraper::Selector::parse("input")
+                                    .map_err(|_| status::Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
                     
         let inputs = cas_fragment.select(&input_selector);
         for input in inputs {
             if input.value().attr("name").unwrap_or_default() == "execution" {
                 execution = input.value().attr("value").unwrap_or_default().to_owned();
+                break;
             }
         }
     }
@@ -103,16 +52,21 @@ async fn login(username: &str, password: &str, client_option: Option<reqwest::Cl
                                 ("execution", &execution),
                                 ("_eventId", "submit"),
                                 ("locale", "en")];
-        let login_resp = client.post(login_url).form(&login_post_form).send()
-                                .await.map_err(|_| Unauthorized(Some(String::from("Unable to send request to cas page"))))?;
+
+        let login_resp = client.post(LOGIN_URL)
+                                        .form(&login_post_form)
+                                        .send()
+                                        .await
+                                        .map_err(|_| status::Unauthorized(Some(String::from("Unable to send request to cas page"))))?;
 
         let login_html = login_resp.text()
-                                    .await.map_err(|_| Unauthorized(Some("Unable to convert the response to HTML text".to_owned())))?;
+                                        .await
+                                        .map_err(|_| status::Unauthorized(Some(String::from("Unable to convert the response to HTML text"))))?;
+
         if login_html.contains("Log In Successful") {
-            // println!("{:?}", client);
             Ok(client)
         } else {
-            Err(Unauthorized(Some("Login Failed".to_owned())))
+            Err(status::Unauthorized(Some("Login Failed".to_owned())))
         }
         
         
