@@ -65,7 +65,7 @@ struct AvailableCourse {
     id: String
 }
 
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use rocket::response::status;
 use scraper::{Html, Selector};
 
@@ -93,6 +93,28 @@ async fn use_client_login(
     return Ok(resp.contains("Log In Successful"));
 }
 
+async fn use_username_password_login(
+    client: reqwest::Client,
+    username: &str,
+    password: &str,
+    execution: &str,
+) -> Result<bool, status::Unauthorized<String>> {
+    let post_form = [ 
+        ("username", username), 
+        ("password", password),
+        ("execution", &execution),
+        ("_eventId", "submit"),
+        ("locale", "en")];
+    let login_resp_html = client.post(LOGIN_URL)
+                                        .send()
+                                        .await
+                                        .map_err(|_| status::Unauthorized(Some(String::from("Get the login response failed!"))))?
+                                        .text()
+                                        .await
+                                        .map_err(|_| status::Unauthorized(Some(String::from("Parse the response to text failed!"))))?;
+    Ok(login_resp_html.contains("Log In Successful"))
+}
+
 async fn get_execution_code(
     client: reqwest::Client
 ) -> Result<String, status::Unauthorized<String>> 
@@ -110,7 +132,7 @@ async fn get_execution_code(
     let inputs = cas_fragment.select(&input_selector);
     let execution_code_input = inputs.filter(|e| e.value().attr("name").unwrap_or_default() == "execution").next();
     if let Some(input) = execution_code_input {
-        return Ok(input.value().attr("value").unwrap());
+        return Ok(input.value().attr("value").unwrap().to_owned());
     } else {
         return Err(status::Unauthorized(Some(String::from("Cannot find the input with execution code"))));
     }
@@ -118,6 +140,12 @@ async fn get_execution_code(
 
 #[cfg(test)]
 mod tests {
+    use std::io::Read;
+
+    use rocket::{futures::executor::block_on, tokio};
+
+    use crate::use_username_password_login;
+
     #[test]
     fn test_use_client_login() {
         let client = reqwest::Client::builder()
@@ -126,6 +154,35 @@ mod tests {
                                                 .unwrap();
         
                                             
+    }
+
+    #[tokio::test]
+    async fn test_username_password_login() {
+        let client = reqwest::Client::builder()
+                                            .user_agent(super::USER_AGENT)
+                                            .build()
+                                            .unwrap();
+        let mut username = String::new();
+        let mut password = String::new();
+        std::io::stdin().read_line(&mut username).unwrap();
+        std::io::stdin().read_line(&mut password).unwrap();
+        let execution = super::get_execution_code(client).await.unwrap();
+
+        println!("{:?}", super::use_username_password_login(client, &username, &password, &execution).await.unwrap())
+
+
+        
+    }
+
+    #[tokio::test]
+    async fn test_get_execution_code() {
+        let client = reqwest::Client::builder()
+                                            .user_agent(super::USER_AGENT)
+                                            .build()
+                                            .unwrap();
+        let future = super::get_execution_code(client);
+        let result = future.await;
+        println!("{:?}", result.unwrap());
     }
 }
 
