@@ -52,7 +52,8 @@ struct SelectedCourse {
     teacher: String,
     time_and_place: String,
     available: bool,
-    id: String
+    id: String,
+    points: u32,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -447,7 +448,8 @@ pub async fn selected_courses(
                 let p_selector = scraper::Selector::parse("p").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
                 let p = div_iter.next().unwrap().select(&p_selector).next().unwrap().inner_html();
                 p
-            }
+            },
+            points: value["xkxs"].as_str().unwrap().parse::<u32>().unwrap(),
         };
         selected_courses_vec.push(course);
     }
@@ -521,7 +523,6 @@ pub async fn available_courses(
     Ok(serde_json::to_string_pretty(&available_courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
 }
 
-// Not work well. Fix by adding status in the server.
 #[rocket::get("/select_course?<username>&<password>&<semester_year>&<semester_no>&<course_id>&<course_type>&<points>")]
 pub async fn select_course(
     username: &str, 
