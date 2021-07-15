@@ -81,6 +81,8 @@ const COURSES_URL: &'static str = "https://course-tao.sustech.edu.cn/kcxxweb/Kcx
 const SELECTED_COURSES_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/queryYxkc";
 const AVAILABLE_COURSES_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/queryKxrw";
 const SELECT_COURSE_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/addGouwuche"; // WTF???? 购物车？？？
+const DROP_COURSE_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/tuike";
+const UPDATE_POINTS_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/updXkxsByyx";
 
 async fn use_client_login(
     client: &reqwest::Client
@@ -557,13 +559,101 @@ pub async fn select_course(
     post_form.insert("p_xkfsdm", code_p_xkfsdm);
     post_form.insert("p_xktjz", "rwtjzyx");
 
-    let v: serde_json::Value = client.post(SELECT_COURSE_URL).form(&post_form).send()
-                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
-                                                        .json::<serde_json::Value>()
-                                                        .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    let v: serde_json::Value = client.post(SELECT_COURSE_URL)
+                                    .form(&post_form)
+                                    .send()
+                                    .await.map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                    .json::<serde_json::Value>()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
 
+    #[cfg(debug_assertions)]
     println!("{}", serde_json::to_string_pretty(&v).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?);
     if v["gjhczztm"].as_str().unwrap() == "OPERATE.RESULT_SUCCESS" {
+        return Ok("SUCCESS".to_owned());
+    } else {
+        return Err(Unauthorized(Some(v["message"].as_str().unwrap().to_owned())));
+    }
+}
+
+#[rocket::get("/drop_course?<username>&<password>&<semester_year>&<semester_no>&<course_id>")]
+pub async fn drop_course(
+    username: &str, 
+    password: &str, 
+    semester_year: &str, 
+    semester_no: &str, 
+    course_id: &str, 
+    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+) -> Result<String, Unauthorized<String>> {
+
+    let tis_login_result = tis_login(username, password, client_storage).await?;
+    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+
+    let client_storage = client_storage.lock().await;
+    let client = client_storage.get(username).unwrap();
+
+    let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    post_form.insert("p_xn", semester_year);
+    post_form.insert("p_xq", semester_no);
+    post_form.insert("p_id", course_id);
+    post_form.insert("p_pylx", "1");
+    post_form.insert("p_xkfsdm", "yixuan");
+
+    let v: serde_json::Value = client.post(DROP_COURSE_URL)
+                                    .form(&post_form)
+                                    .send()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                    .json::<serde_json::Value>()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+
+    #[cfg(debug_assertions)]
+    println!("{}", serde_json::to_string_pretty(&v).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?);
+    if v["gjhczztm"].as_str().unwrap() == "OPERATE.RESULT_SUCCESS" {
+        return Ok("SUCCESS".to_owned());
+    } else {
+        return Err(Unauthorized(Some(v["message"].as_str().unwrap().to_owned())));
+    }
+}
+
+#[rocket::get("/update_points?<username>&<password>&<semester_year>&<semester_no>&<course_id>&<points>")]
+pub async fn update_points(
+    username: &str, 
+    password: &str, 
+    semester_year: &str, 
+    semester_no: &str, 
+    course_id: &str, 
+    points: &str,
+    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+) -> Result<String, Unauthorized<String>> {
+
+    let tis_login_result = tis_login(username, password, client_storage).await?;
+    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+
+    let client_storage = client_storage.lock().await;
+    let client = client_storage.get(username).unwrap();
+
+    let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    post_form.insert("p_xn", semester_year);
+    post_form.insert("p_xq", semester_no);
+    post_form.insert("p_id", course_id);
+    post_form.insert("p_pylx", "1");
+    post_form.insert("p_xkfsdm", "yixuan");
+    post_form.insert("p_xkxs", points);
+
+    let v: serde_json::Value = client.post(UPDATE_POINTS_URL)
+                                    .form(&post_form)
+                                    .send()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                    .json::<serde_json::Value>()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+
+    #[cfg(debug_assertions)]
+    println!("{}", serde_json::to_string_pretty(&v).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?);
+    if v["jg"].as_str().unwrap() == "1" {
         return Ok("SUCCESS".to_owned());
     } else {
         return Err(Unauthorized(Some(v["message"].as_str().unwrap().to_owned())));
