@@ -1,5 +1,9 @@
-#[derive(serde::Serialize, serde::Deserialize)]
-struct BasicInfo {
+mod encrypt;
+
+use rocket::{serde::{self, json}};
+
+#[derive(serde::Serialize)]
+pub struct BasicInfo {
     id: String,
     sid: String,
     name: String,
@@ -9,23 +13,23 @@ struct BasicInfo {
     major: String
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct SemesterGPA {
+#[derive(serde::Serialize)]
+pub struct SemesterGPA {
     semester_full_name: String,
     semester_year: String,
     semester_number: String,
     gpa: Option<f64>
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct StudentGPA {
+#[derive(serde::Serialize)]
+pub struct StudentGPA {
     all_gpa: std::vec::Vec<SemesterGPA>,
     average_gpa: f64,
     rank: String
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct CourseGrade {
+#[derive(serde::Serialize)]
+pub struct CourseGrade {
     code: String,
     name: String,
     class_hour: String,
@@ -36,16 +40,16 @@ struct CourseGrade {
     department: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct Course {
+#[derive(serde::Serialize)]
+pub struct Course {
     course_id: String,
     course_name: String,
     credits: f32,
     department: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct SelectedCourse {
+#[derive(serde::Serialize)]
+pub struct SelectedCourse {
     basic_course: Course,
     course_type: String,
     course_class: String,
@@ -56,8 +60,8 @@ struct SelectedCourse {
     points: u32,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct AvailableCourse {
+#[derive(serde::Serialize)]
+pub struct AvailableCourse {
     basic_course: Course,
     course_type: String,
     course_class: String,
@@ -235,10 +239,10 @@ pub async fn basic_info(
     username: &str, 
     password: &str,
     client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
-) -> Result<String, Unauthorized<String>> {
+) -> Result<json::Json<BasicInfo>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
-    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+    if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
     let client = client_storage.get(username).unwrap();
@@ -261,7 +265,7 @@ pub async fn basic_info(
         major: v["ZYMC"].as_str().unwrap_or_default().to_owned()
     };
 
-    Ok(serde_json::to_string_pretty(&basic_info).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    Ok(json::Json(basic_info))
 }
 
 #[rocket::get("/semester_gpa?<username>&<password>")]
@@ -269,10 +273,10 @@ pub async fn semester_gpa(
     username: &str, 
     password: &str,
     client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
-) -> Result<String, Unauthorized<String>> {
+) -> Result<json::Json<StudentGPA>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
-    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+    if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
     let client = client_storage.get(username).unwrap();
@@ -302,8 +306,7 @@ pub async fn semester_gpa(
         average_gpa: v["xfjandpm"]["PJXFJ"].as_f64().unwrap_or_default(),
         rank: v["xfjandpm"]["PM"].as_str().unwrap_or_default().to_owned()
     };
-    
-    Ok(serde_json::to_string_pretty(&student_gpa).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    Ok(json::Json(student_gpa))
 }
 
 #[rocket::get("/courses_grades?<username>&<password>")]
@@ -311,10 +314,10 @@ pub async fn courses_grades(
     username: &str, 
     password: &str,
     client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
-) -> Result<String, Unauthorized<String>> {
+) -> Result<json::Json<Vec<CourseGrade>>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
-    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+    if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
     let client = client_storage.get(username).unwrap();
@@ -350,13 +353,13 @@ pub async fn courses_grades(
 
     #[cfg(debug_assertions)]
     println!("Total {} course grades item", course_grades_vec.len());
-
-    Ok(serde_json::to_string_pretty(&course_grades_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    Ok(json::Json(course_grades_vec))
 }
 
 #[rocket::get("/courses")]
-pub async fn get_courses() -> Result<String, Unauthorized<String>> {
-    
+pub async fn get_courses(
+
+) -> Result<json::Json<Vec<Course>>, Unauthorized<String>> {    
     let courses_html = reqwest::get(COURSES_URL)
                                         .await
                                         .map_err(|_| Unauthorized(Some("Unable to get courses from the web".to_owned())))?
@@ -392,7 +395,7 @@ pub async fn get_courses() -> Result<String, Unauthorized<String>> {
             courses_vec.push(course);
         }
     }
-    Ok(serde_json::to_string_pretty(&courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    Ok(json::Json(courses_vec))
 }
 
 #[rocket::get("/selected_courses?<username>&<password>&<semester_year>&<semester_no>")]
@@ -402,10 +405,10 @@ pub async fn selected_courses(
     semester_year: &str, 
     semester_no: &str,
     client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
-) -> Result<String, Unauthorized<String>> {
+) -> Result<json::Json<Vec<SelectedCourse>>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
-    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+    if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
     let client = client_storage.get(username).unwrap();
@@ -455,7 +458,7 @@ pub async fn selected_courses(
         };
         selected_courses_vec.push(course);
     }
-    Ok(serde_json::to_string_pretty(&selected_courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    Ok(json::Json(selected_courses_vec))
 }
 
 #[rocket::get("/available_courses?<username>&<password>&<semester_year>&<semester_no>&<courses_type>")]
@@ -466,10 +469,10 @@ pub async fn available_courses(
     semester_no: &str, 
     courses_type: &str,
     client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
-) -> Result<String, Unauthorized<String>> {
+) -> Result<json::Json<Vec<AvailableCourse>>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
-    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+    if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
     let client = client_storage.get(username).unwrap();
@@ -522,7 +525,7 @@ pub async fn available_courses(
         };
         available_courses_vec.push(course);
     }
-    Ok(serde_json::to_string_pretty(&available_courses_vec).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?)
+    Ok(json::Json(available_courses_vec))
 }
 
 #[rocket::get("/select_course?<username>&<password>&<semester_year>&<semester_no>&<course_id>&<course_type>&<points>")]
@@ -535,10 +538,10 @@ pub async fn select_course(
     course_type: &str, 
     points: &str,
     client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
-) -> Result<String, Unauthorized<String>> {
+) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
-    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+    if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
     let client = client_storage.get(username).unwrap();
@@ -569,11 +572,7 @@ pub async fn select_course(
 
     #[cfg(debug_assertions)]
     println!("{}", serde_json::to_string_pretty(&v).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?);
-    if v["gjhczztm"].as_str().unwrap() == "OPERATE.RESULT_SUCCESS" {
-        return Ok("SUCCESS".to_owned());
-    } else {
-        return Err(Unauthorized(Some(v["message"].as_str().unwrap().to_owned())));
-    }
+    Ok(json::Json(v))
 }
 
 #[rocket::get("/drop_course?<username>&<password>&<semester_year>&<semester_no>&<course_id>")]
@@ -584,10 +583,10 @@ pub async fn drop_course(
     semester_no: &str, 
     course_id: &str, 
     client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
-) -> Result<String, Unauthorized<String>> {
+) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
-    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+    if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
     let client = client_storage.get(username).unwrap();
@@ -610,11 +609,7 @@ pub async fn drop_course(
 
     #[cfg(debug_assertions)]
     println!("{}", serde_json::to_string_pretty(&v).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?);
-    if v["gjhczztm"].as_str().unwrap() == "OPERATE.RESULT_SUCCESS" {
-        return Ok("SUCCESS".to_owned());
-    } else {
-        return Err(Unauthorized(Some(v["message"].as_str().unwrap().to_owned())));
-    }
+    Ok(json::Json(v))
 }
 
 #[rocket::get("/update_points?<username>&<password>&<semester_year>&<semester_no>&<course_id>&<points>")]
@@ -626,10 +621,10 @@ pub async fn update_points(
     course_id: &str, 
     points: &str,
     client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
-) -> Result<String, Unauthorized<String>> {
+) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
-    if !tis_login_result { return Ok(String::from("Login to the tis system failed!")); }
+    if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
     let client = client_storage.get(username).unwrap();
@@ -653,11 +648,7 @@ pub async fn update_points(
 
     #[cfg(debug_assertions)]
     println!("{}", serde_json::to_string_pretty(&v).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?);
-    if v["jg"].as_str().unwrap() == "1" {
-        return Ok("SUCCESS".to_owned());
-    } else {
-        return Err(Unauthorized(Some(v["message"].as_str().unwrap().to_owned())));
-    }
+    Ok(json::Json(v))
 }
 
 #[cfg(test)]
