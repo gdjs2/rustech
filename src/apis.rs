@@ -15,7 +15,7 @@ pub async fn index() -> String {
 pub async fn cas_login(
     username: &str, 
     password: &str, 
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<String, Unauthorized<String>> {
     if login(username, password, client_storage)
         .await?
@@ -30,14 +30,14 @@ pub async fn cas_login(
 pub async fn basic_info(
     username: &str, 
     password: &str,
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<BasicInfo>, Unauthorized<String>> {
 
-    let tis_login_result = tis_login(username, password, client_storage).await?;
+    let tis_login_result = tis_login(username, password, &client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
-    let client = client_storage.get(username).unwrap();
+    let client = &client_storage.get(username).unwrap().client;
     
     let v = client.post(BASIC_INFO_URL)
                         .send()
@@ -64,14 +64,14 @@ pub async fn basic_info(
 pub async fn semester_gpa(
     username: &str, 
     password: &str,
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<StudentGPA>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
-    let client = client_storage.get(username).unwrap();
+    let client = &client_storage.get(username).unwrap().client;
     
     let v = client.post(SEMESTER_GPA_URL)
                         .send()
@@ -105,14 +105,14 @@ pub async fn semester_gpa(
 pub async fn courses_grades(
     username: &str, 
     password: &str,
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<CourseGrade>>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
-    let client = client_storage.get(username).unwrap();
+    let client = &client_storage.get(username).unwrap().client;
 
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("Content-Type", reqwest::header::HeaderValue::from_static("application/json"));
@@ -196,14 +196,14 @@ pub async fn selected_courses(
     password: &str, 
     semester_year: &str, 
     semester_no: &str,
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<SelectedCourse>>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
-    let client = client_storage.get(username).unwrap();
+    let client = &client_storage.get(username).unwrap().client;
 
     let mut post_form = std::collections::HashMap::<&str, &str>::new();
     post_form.insert("p_xkfsdm", "yixuan");
@@ -260,14 +260,14 @@ pub async fn available_courses(
     semester_year: &str, 
     semester_no: &str, 
     courses_type: &str,
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<AvailableCourse>>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
-    let client = client_storage.get(username).unwrap();
+    let client = &client_storage.get(username).unwrap().client;
 
     let mut post_form = std::collections::HashMap::<&str, &str>::new();
     let code_p_xkfsdm = match courses_type {
@@ -329,14 +329,14 @@ pub async fn select_course(
     course_id: &str, 
     course_type: &str, 
     points: &str,
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
-    let client = client_storage.get(username).unwrap();
+    let client = &client_storage.get(username).unwrap().client;
 
     let code_p_xkfsdm = match course_type {
         "GR" => "bxxk", //  General Required
@@ -374,14 +374,14 @@ pub async fn drop_course(
     semester_year: &str, 
     semester_no: &str, 
     course_id: &str, 
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
-    let client = client_storage.get(username).unwrap();
+    let client = &client_storage.get(username).unwrap().client;
 
     let mut post_form = std::collections::HashMap::<&str, &str>::new();
     post_form.insert("p_xn", semester_year);
@@ -412,14 +412,14 @@ pub async fn update_points(
     semester_no: &str, 
     course_id: &str, 
     points: &str,
-    client_storage: &State<Mutex<HashMap<String, reqwest::Client>>>
+    client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
     let client_storage = client_storage.lock().await;
-    let client = client_storage.get(username).unwrap();
+    let client = &client_storage.get(username).unwrap().client;
 
     let mut post_form = std::collections::HashMap::<&str, &str>::new();
     post_form.insert("p_xn", semester_year);

@@ -1,5 +1,5 @@
 mod encrypt;
-mod structures;
+pub mod structures;
 mod urls;
 mod login;
 pub mod apis;

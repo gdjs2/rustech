@@ -67,3 +67,10 @@ pub struct AvailableCourse {
     pub time_and_place: String,
     pub id: String
 }
+
+pub struct Account {
+    pub hash_salt: Option<(
+        [u8; super::encrypt::CREDENTIAL_LEN], 
+        [u8; super::encrypt::CREDENTIAL_LEN])>,
+    pub client: reqwest::Client,
+}
