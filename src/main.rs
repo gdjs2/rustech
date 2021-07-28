@@ -1,7 +1,7 @@
 use std::{collections::HashMap};
 
 use futures::lock::Mutex;
-use rustech::apis::{available_courses, basic_info, cas_login, courses_grades, drop_course, get_courses, index, select_course, selected_courses, semester_gpa, update_points};
+use rustech::apis::{available_courses, basic_info, cas_login, course_outline, courses_grades, drop_course, get_courses, index, select_course, selected_courses, semester_gpa, update_points};
 use rustech::structures::Account;
 
 #[rocket::launch]
@@ -18,5 +18,6 @@ fn rocket() -> _ {
                                                     available_courses,
                                                     select_course,
                                                     drop_course,
-                                                    update_points])
+                                                    update_points,
+                                                    course_outline])
 }

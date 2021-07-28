@@ -70,6 +70,7 @@ pub struct AvailableCourse {
     pub undergraduated_selected: u32,
     pub graduated_available: u32,
     pub graduated_selected: u32,
+    pub outline_id: String,
 }
 
 pub struct Account {

@@ -10,3 +10,4 @@ pub const AVAILABLE_COURSES_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk
 pub const SELECT_COURSE_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/addGouwuche"; // WTF???? 购物车？？？
 pub const DROP_COURSE_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/tuike";
 pub const UPDATE_POINTS_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/updXkxsByyx";
+pub const OUTLINE_URL: &'static str = "https://tis.sustech.edu.cn/kck/kcxxwh/xsckViewByxk";

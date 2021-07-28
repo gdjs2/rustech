@@ -309,6 +309,7 @@ pub async fn available_courses(
             undergraduated_selected: value["bksyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
             graduated_available: value["yjsrl"].as_str().unwrap().parse::<u32>().unwrap(),
             graduated_selected: value["yjsyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
+            outline_id: value["kcid"].as_str().unwrap().to_owned(),
             time_and_place: {
                 let course_info_html = value["kcxx"].as_str().unwrap();
                 let course_info_fragment = scraper::Html::parse_fragment(&course_info_html);
@@ -445,6 +446,34 @@ pub async fn update_points(
     #[cfg(debug_assertions)]
     println!("{}", serde_json::to_string_pretty(&v).map_err(|_| Unauthorized(Some("Unable to parse the result to JSON".to_owned())))?);
     Ok(json::Json(v))
+}
+
+#[rocket::get("/course_outline?<username>&<password>&<outline_id>")]
+pub async fn course_outline(
+    username: &str,
+    password: &str,
+    outline_id: &str,
+    client_storage: &State<Mutex<HashMap<String, Account>>>
+) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
+
+    let tis_login_result = tis_login(username, password, client_storage).await?;
+    if !tis_login_result { return Err(Unauthorized(None)); }
+
+    let client_storage = client_storage.lock().await;
+    let client = &client_storage.get(username).unwrap().client;
+
+    let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    post_form.insert("kcid", outline_id);
+
+    let v: serde_json::Value = client.post(OUTLINE_URL)
+                                    .form(&post_form)
+                                    .send()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                    .json::<serde_json::Value>()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    Ok(json::Json(v["content"]["kcdgbentity"]["kczwjj"].to_owned()))
 }
 
 #[cfg(test)]
