@@ -305,6 +305,10 @@ pub async fn available_courses(
             course_type: value["kclbmc"].as_str().unwrap().to_owned(),
             teacher: value["dgjsmc"].as_str().unwrap().to_owned(),
             id: value["id"].as_str().unwrap().to_owned(),
+            undergraduated_available: value["bksrl"].as_str().unwrap().parse::<u32>().unwrap(),
+            undergraduated_selected: value["bksyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
+            graduated_available: value["yjsrl"].as_str().unwrap().parse::<u32>().unwrap(),
+            graduated_selected: value["yjsyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
             time_and_place: {
                 let course_info_html = value["kcxx"].as_str().unwrap();
                 let course_info_fragment = scraper::Html::parse_fragment(&course_info_html);

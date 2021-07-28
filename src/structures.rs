@@ -65,7 +65,11 @@ pub struct AvailableCourse {
     pub course_class: String,
     pub teacher: String,
     pub time_and_place: String,
-    pub id: String
+    pub id: String,
+    pub undergraduated_available: u32,
+    pub undergraduated_selected: u32,
+    pub graduated_available: u32,
+    pub graduated_selected: u32,
 }
 
 pub struct Account {
