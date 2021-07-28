@@ -22,6 +22,7 @@ All the APIs work with GET method with correct username (SID) and password for C
 8. `/select_course?username=&password=&semester_year=&semester_no=&course_id=&course_type=&points=`: Select the specific course. The `semester_year` and `semester_no` must be corresponding to the current course selection period. The `course_type` must be the correct one to the selected course or the selection will go wrong which will be hard to fix. The points is the points you want to use to select the course. 选取选定的课程。`semester_year` 和 `semester_no` 参数必须与当前开放选课的学期相匹配。`course_type` 参数必须要和你选定的课程的类型相匹配，不然会出现难以修复的问题。`points` 参数代表你选课所投入的分数。
 9. `/drop_course?username=&password=&semester_year=&semester_no=&course_id=`: Drop out the specific class. The requirements for `semester_year` and `semester_no` are the as the one uppon. 退课，将会退掉选定的课程，参数 `semester_year` 和 `semester_no` 需要满足的要求和选课 API 一致。
 10. `/update_points?username=&password=&semester_year=&semester_no=&course_id=&points=`: Update the points for one of your selected course. `points` is the points you want to choose for the specific course. 调整你所选某个科目的选课积分，`points` 参数代表你所想要调整到的积分。
+11. `/course_outline?username=&password=&outline_id=`: Get the outline of specific course, which may be in HTML format. 获取特定课程的课程大纲，课程大纲信息可能是以 HTML 的形式呈现的。
 
 ### Maintainance 维护
 This project will NOT be maintained regularly. So if you have good idea about refine it or the APIs of TIS has changed and you want to make it compatible to new system, PR is welcomed!!!
