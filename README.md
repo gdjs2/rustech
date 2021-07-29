@@ -24,6 +24,20 @@ All the APIs work with GET method with correct username (SID) and password for C
 10. `/update_points?username=&password=&semester_year=&semester_no=&course_id=&points=`: Update the points for one of your selected course. `points` is the points you want to choose for the specific course. 调整你所选某个科目的选课积分，`points` 参数代表你所想要调整到的积分。
 11. `/course_outline?username=&password=&outline_id=`: Get the outline of specific course, which may be in HTML format. 获取特定课程的课程大纲，课程大纲信息可能是以 HTML 的形式呈现的。
 
+### Compile & Run 编译及运行
+
+#### Cargo
+
+```shell
+$ cd rustech
+$ cargo install --path .
+```
+
+#### Docker
+```shell
+$ docker build -t rustech .
+$ docker run --rm --name rustech -p 8000:8000 -d rustech
+```
 ### Maintainance 维护
 This project will NOT be maintained regularly. So if you have good idea about refine it or the APIs of TIS has changed and you want to make it compatible to new system, PR is welcomed!!!
 
