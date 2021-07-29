@@ -191,6 +191,80 @@ pub async fn get_courses(
     Ok(json::Json(courses_vec))
 }
 
+async fn parse_course_info(
+    course_info_html: &str
+) -> (Vec<String>, Vec<String>, Option<Vec<String>>, Option<Vec<String>>) {
+    let mut major_teacher = Vec::<String>::new();
+    let mut major_time_and_place = Vec::<String>::new();
+    let minor_teacher: Option<Vec<String>>;
+    let minor_time_and_place: Option<Vec<String>>;
+    
+    let course_info_fragment = scraper::Html::parse_fragment(course_info_html);
+    let div_selector = scraper::Selector::parse("div").unwrap();
+    let p_selector = scraper::Selector::parse("p").unwrap();
+    let a_selector = scraper::Selector::parse("a").unwrap();
+    let mut p_iter = course_info_fragment.select(&p_selector);
+    let mut div_iter = course_info_fragment.select(&div_selector);
+
+    if course_info_fragment.select(&div_selector).count() == 2 {   
+        let a_iter = p_iter.next()
+                                .unwrap()
+                                .select(&a_selector);
+        for a in a_iter {
+            major_teacher.push(a.inner_html());
+        }
+        let div_p_iter = div_iter.next()
+                                .unwrap()
+                                .select(&p_selector);
+        for p in div_p_iter {
+            major_time_and_place.push(p.inner_html());
+        }
+        minor_teacher = None;
+        minor_time_and_place = None;
+    } else {
+        #[cfg(debug_assertions)] {
+            let mut x = 0;
+            for p in p_iter {
+                x += 1;
+                println!("{}: {}", x, p.inner_html());
+            }
+        }
+        let mut p_iter = course_info_fragment.select(&p_selector);
+        let a_iter = p_iter.nth(1)
+                                .unwrap()
+                                .select(&a_selector);
+        for a in a_iter {
+            major_teacher.push(a.inner_html());
+        }
+        let div_p_iter = div_iter.next()
+                                .unwrap()
+                                .select(&p_selector);
+        for p in div_p_iter {
+            major_time_and_place.push(p.inner_html());
+        }
+        // println!("{:?}", p_iter.nth(8).unwrap().inner_html());
+        let mut minor_teacher_vec = Vec::<String>::new();
+        let a_iter = p_iter.nth(7)
+                                .unwrap()
+                                .select(&a_selector);
+        for a in a_iter {
+            minor_teacher_vec.push(a.inner_html());
+        }
+        minor_teacher = Some(minor_teacher_vec);
+
+        let div_p_iter = div_iter.nth(1)
+                            .unwrap()
+                            .select(&p_selector);
+        let mut minor_time_and_place_vec = Vec::<String>::new();
+        for p in div_p_iter {
+            minor_time_and_place_vec.push(p.inner_html());
+        }
+        minor_time_and_place = Some(minor_time_and_place_vec);
+    }
+
+    return (major_teacher, major_time_and_place, minor_teacher, minor_time_and_place);
+}
+
 #[rocket::get("/selected_courses?<username>&<password>&<semester_year>&<semester_no>")]
 pub async fn selected_courses(
     username: &str, 
@@ -222,30 +296,30 @@ pub async fn selected_courses(
     let mut selected_courses_vec = Vec::<SelectedCourse>::new();
 
     for value in selected_courses_value {
+        let (major_teacher, 
+            major_time_and_place, 
+            minor_teacher, 
+            minor_time_and_place) = parse_course_info(value["kcxx"].as_str().unwrap()).await;
         let course = SelectedCourse {
-            basic_course: Course {
-                course_id: value["kcdm"].as_str().unwrap().to_owned(),
-                course_name: value["kcmc"].as_str().unwrap().to_owned(),
-                credits: value["xf"].as_str().unwrap().parse::<f32>().map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?,
-                department: value["kkyxmc"].as_str().unwrap().to_owned()
+            advanced_course: AdvancedCourse {
+                basic_course: Course {
+                    course_id: value["kcdm"].as_str().unwrap().to_owned(),
+                    course_name: value["kcmc"].as_str().unwrap().to_owned(),
+                    credits: value["xf"].as_str().unwrap().parse::<f32>().map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?,
+                    department: value["kkyxmc"].as_str().unwrap().to_owned()
+                },
+                course_class: value["rwmc"].as_str().unwrap().to_owned(),
+                course_type: value["kclbmc"].as_str().unwrap().to_owned(),
+                id: value["id"].as_str().unwrap().to_owned(),
+                major_teacher,
+                major_time_and_place,
+                minor_teacher,
+                minor_time_and_place,
             },
-            course_class: value["rwmc"].as_str().unwrap().to_owned(),
-            course_type: value["kclbmc"].as_str().unwrap().to_owned(),
-            id: value["id"].as_str().unwrap().to_owned(),
             available: match value["sxbj"].as_str().unwrap() {
                 "0" => { false },
                 "1" => { true },
                 _ => {false}
-            },
-            teacher: value["dgjsmc"].as_str().unwrap().to_owned(),
-            time_and_place: {
-                let course_info_html = value["kcxx"].as_str().unwrap();
-                let course_info_fragment = scraper::Html::parse_fragment(&course_info_html);
-                let div_selector = scraper::Selector::parse("div").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
-                let mut div_iter = course_info_fragment.select(&div_selector);
-                let p_selector = scraper::Selector::parse("p").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
-                let p = div_iter.next().unwrap().select(&p_selector).next().unwrap().inner_html();
-                p
             },
             points: value["xkxs"].as_str().unwrap().parse::<u32>().unwrap(),
         };
@@ -295,31 +369,32 @@ pub async fn available_courses(
     let mut available_courses_vec = Vec::<AvailableCourse>::new();
 
     for value in available_courses_value {
+        let (major_teacher, 
+            major_time_and_place, 
+            minor_teacher, 
+            minor_time_and_place) = parse_course_info(value["kcxx"].as_str().unwrap()).await;
+
         let course = AvailableCourse {
-            basic_course: Course {
-                course_id: value["kcdm"].as_str().unwrap().to_owned(),
-                course_name: value["kcmc"].as_str().unwrap().to_owned(),
-                credits: value["xf"].as_str().unwrap().parse::<f32>().map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?,
-                department: value["kkyxmc"].as_str().unwrap().to_owned(),
+            advanced_course: AdvancedCourse {
+                basic_course: Course {
+                    course_id: value["kcdm"].as_str().unwrap().to_owned(),
+                    course_name: value["kcmc"].as_str().unwrap().to_owned(),
+                    credits: value["xf"].as_str().unwrap().parse::<f32>().map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?,
+                    department: value["kkyxmc"].as_str().unwrap().to_owned(),
+                },
+                course_class: value["rwmc"].as_str().unwrap().to_owned(),
+                course_type: value["kclbmc"].as_str().unwrap().to_owned(),
+                id: value["id"].as_str().unwrap().to_owned(),
+                major_teacher,
+                major_time_and_place,
+                minor_teacher,
+                minor_time_and_place,
             },
-            course_class: value["rwmc"].as_str().unwrap().to_owned(),
-            course_type: value["kclbmc"].as_str().unwrap().to_owned(),
-            teacher: value["dgjsmc"].as_str().unwrap().to_owned(),
-            id: value["id"].as_str().unwrap().to_owned(),
             undergraduated_available: value["bksrl"].as_str().unwrap().parse::<u32>().unwrap(),
             undergraduated_selected: value["bksyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
             graduated_available: value["yjsrl"].as_str().unwrap().parse::<u32>().unwrap(),
             graduated_selected: value["yjsyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
             outline_id: value["kcid"].as_str().unwrap().to_owned(),
-            time_and_place: {
-                let course_info_html = value["kcxx"].as_str().unwrap();
-                let course_info_fragment = scraper::Html::parse_fragment(&course_info_html);
-                let div_selector = scraper::Selector::parse("div").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
-                let mut div_iter = course_info_fragment.select(&div_selector);
-                let p_selector = scraper::Selector::parse("p").map_err(|_| Unauthorized(Some(String::from("Unable to parse HTML to fragment"))))?;
-                let p = div_iter.next().unwrap().select(&p_selector).next().unwrap().inner_html();
-                p
-            }
         };
         available_courses_vec.push(course);
     }

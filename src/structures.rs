@@ -48,25 +48,27 @@ pub struct Course {
 }
 
 #[derive(Serialize)]
-pub struct SelectedCourse {
+pub struct AdvancedCourse {
     pub basic_course: Course,
     pub course_type: String,
     pub course_class: String,
-    pub teacher: String,
-    pub time_and_place: String,
-    pub available: bool,
     pub id: String,
+    pub major_teacher: Vec<String>,
+    pub major_time_and_place: Vec<String>,
+    pub minor_teacher: Option<Vec<String>>,
+    pub minor_time_and_place: Option<Vec<String>>,
+}
+
+#[derive(Serialize)]
+pub struct SelectedCourse {
+    pub advanced_course: AdvancedCourse,
+    pub available: bool,
     pub points: u32,
 }
 
 #[derive(Serialize)]
 pub struct AvailableCourse {
-    pub basic_course: Course,
-    pub course_type: String,
-    pub course_class: String,
-    pub teacher: String,
-    pub time_and_place: String,
-    pub id: String,
+    pub advanced_course: AdvancedCourse,
     pub undergraduated_available: u32,
     pub undergraduated_selected: u32,
     pub graduated_available: u32,
