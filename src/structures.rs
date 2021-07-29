@@ -36,6 +36,7 @@ pub struct CourseGrade {
     pub final_grade: String,
     pub final_level: String,
     pub department: String,
+    pub course_type: String
 }
 
 #[derive(Serialize)]

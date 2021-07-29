@@ -139,6 +139,7 @@ pub async fn courses_grades(
             final_grade: course_grade_value["zzcj"].as_str().unwrap_or_default().to_owned(),
             final_level: course_grade_value["xscj"].as_str().unwrap_or_default().to_owned(),
             department: course_grade_value["yxmc"].as_str().unwrap_or_default().to_owned(),
+            course_type: course_grade_value["kclb"].as_str().unwrap_or_default().to_owned(),
         };
         course_grades_vec.push(course_grade);
     }
