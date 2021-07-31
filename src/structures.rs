@@ -74,6 +74,7 @@ pub struct AvailableCourse {
     pub graduated_available: u32,
     pub graduated_selected: u32,
     pub outline_id: String,
+    pub conflict_courses: Option<String>,
 }
 
 pub struct Account {

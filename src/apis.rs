@@ -395,6 +395,10 @@ pub async fn available_courses(
             graduated_available: value["yjsrl"].as_str().unwrap().parse::<u32>().unwrap(),
             graduated_selected: value["yjsyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
             outline_id: value["kcid"].as_str().unwrap().to_owned(),
+            conflict_courses: {
+                if value["ctkcxx"].is_null() { None }
+                else { Some(value["ctkcxx"].as_str().unwrap().to_owned()) }
+            }
         };
         available_courses_vec.push(course);
     }
