@@ -57,6 +57,10 @@ pub struct AdvancedCourse {
     pub major_time_and_place: Vec<String>,
     pub minor_teacher: Option<Vec<String>>,
     pub minor_time_and_place: Option<Vec<String>>,
+    pub undergraduated_available: u32,
+    pub undergraduated_selected: u32,
+    pub graduated_available: u32,
+    pub graduated_selected: u32,
 }
 
 #[derive(Serialize)]
@@ -69,10 +73,6 @@ pub struct SelectedCourse {
 #[derive(Serialize)]
 pub struct AvailableCourse {
     pub advanced_course: AdvancedCourse,
-    pub undergraduated_available: u32,
-    pub undergraduated_selected: u32,
-    pub graduated_available: u32,
-    pub graduated_selected: u32,
     pub outline_id: String,
     pub conflict_courses: Option<String>,
 }
