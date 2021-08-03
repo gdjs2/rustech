@@ -552,6 +552,55 @@ pub async fn course_outline(
     Ok(json::Json(v["content"]["kcdgbentity"]["kczwjj"].to_owned()))
 }
 
+#[rocket::get("/course_table?<username>&<password>&<semester_year>&<semester_no>")]
+pub async fn course_table(
+    username: &str,
+    password: &str,
+    semester_year: &str,
+    semester_no: &str,
+    client_storage: &State<Mutex<HashMap<String, Account>>>,
+) -> Result<json::Json<Vec<CourseTableItem>>, Unauthorized<String>> {
+    let tis_login_result = tis_login(username, password, client_storage).await?;
+    if !tis_login_result { return Err(Unauthorized(None)); }
+
+    let client_storage = client_storage.lock().await;
+    let client = &client_storage.get(username).unwrap().client;
+
+    let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    post_form.insert("bs", "2");
+    post_form.insert("xn", semester_year);
+    post_form.insert("xq", semester_no);
+
+    let v: serde_json::Value = client.post(COURSE_TABLE_URL)
+                                    .form(&post_form)
+                                    .send()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                    .json::<serde_json::Value>()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    #[cfg(debug_assertions)]
+    println!("{:?}", v);
+    
+    let mut course_table_items_vec = Vec::<CourseTableItem>::new();
+    let json_array = v.as_array().unwrap();
+    for item in json_array {
+        let key = item["key"].as_str()
+                            .unwrap();
+        let day = key.chars().nth(2).unwrap().to_digit(10).unwrap();
+        let time = key.chars().nth(6).unwrap().to_digit(10).unwrap();
+        let course_table_item = CourseTableItem {
+            day,
+            time,
+            course_info: item["kbxx"].as_str()
+                                    .unwrap()
+                                    .to_owned(),
+        };
+        course_table_items_vec.push(course_table_item);
+    }
+    Ok(json::Json(course_table_items_vec))
+}
+
 #[cfg(test)]
 mod tests {
     use futures::lock::Mutex;

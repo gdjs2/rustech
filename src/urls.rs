@@ -11,3 +11,4 @@ pub const SELECT_COURSE_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/add
 pub const DROP_COURSE_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/tuike";
 pub const UPDATE_POINTS_URL: &'static str = "https://tis.sustech.edu.cn/Xsxk/updXkxsByyx";
 pub const OUTLINE_URL: &'static str = "https://tis.sustech.edu.cn/kck/kcxxwh/xsckViewByxk";
+pub const COURSE_TABLE_URL: &'static str = "https://tis.sustech.edu.cn/Xskbcx/queryXskbcxList";
