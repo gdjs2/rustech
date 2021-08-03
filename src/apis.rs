@@ -311,6 +311,10 @@ pub async fn selected_courses(
                 course_class: value["rwmc"].as_str().unwrap().to_owned(),
                 course_type: value["kclbmc"].as_str().unwrap().to_owned(),
                 id: value["id"].as_str().unwrap().to_owned(),
+                undergraduated_available: value["bksrl"].as_str().unwrap().parse::<u32>().unwrap(),
+                undergraduated_selected: value["bksyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
+                graduated_available: value["yjsrl"].as_str().unwrap().parse::<u32>().unwrap(),
+                graduated_selected: value["yjsyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
                 major_teacher,
                 major_time_and_place,
                 minor_teacher,
@@ -385,16 +389,20 @@ pub async fn available_courses(
                 course_class: value["rwmc"].as_str().unwrap().to_owned(),
                 course_type: value["kclbmc"].as_str().unwrap().to_owned(),
                 id: value["id"].as_str().unwrap().to_owned(),
+                undergraduated_available: value["bksrl"].as_str().unwrap().parse::<u32>().unwrap(),
+                undergraduated_selected: value["bksyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
+                graduated_available: value["yjsrl"].as_str().unwrap().parse::<u32>().unwrap(),
+                graduated_selected: value["yjsyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
                 major_teacher,
                 major_time_and_place,
                 minor_teacher,
                 minor_time_and_place,
             },
-            undergraduated_available: value["bksrl"].as_str().unwrap().parse::<u32>().unwrap(),
-            undergraduated_selected: value["bksyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
-            graduated_available: value["yjsrl"].as_str().unwrap().parse::<u32>().unwrap(),
-            graduated_selected: value["yjsyxrlrs"].as_str().unwrap().parse::<u32>().unwrap(),
             outline_id: value["kcid"].as_str().unwrap().to_owned(),
+            conflict_courses: {
+                if value["ctkcxx"].is_null() { None }
+                else { Some(value["ctkcxx"].as_str().unwrap().to_owned()) }
+            }
         };
         available_courses_vec.push(course);
     }
