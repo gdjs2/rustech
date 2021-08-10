@@ -1,14 +1,16 @@
 use std::collections::HashMap;
+use std::path::Path;
 
 use futures::lock::Mutex;
+use rocket::fs::NamedFile;
 use rocket::{State, response::status::Unauthorized, serde::json};
 use super::structures::*;
 use super::urls::*;
 use super::login::*;
 
 #[rocket::get("/")]
-pub async fn index() -> String {
-    String::from("Hello, rustech!\n")
+pub async fn index() -> NamedFile {
+    NamedFile::open(Path::new("./index/index.html")).await.unwrap()
 }
 
 #[rocket::get("/cas_login?<username>&<password>")]
