@@ -1,6 +1,6 @@
 [package]
 name = "rustech"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -14,3 +14,5 @@ serde = "1.0.126"
 futures = "*"
 ring = "*"
 data-encoding = "2.3.2"
+log = "*"
+simple-logging = "*"
