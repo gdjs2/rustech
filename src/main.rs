@@ -6,8 +6,8 @@ use rustech::structures::Account;
 
 #[rocket::launch]
 fn rocket() -> _ {
-    simple_logging::log_to_file("./log.txt", log::LevelFilter::Info)
-                    .unwrap();
+    // simple_logging::log_to_file("./log.txt", log::LevelFilter::Info)
+    //                 .unwrap();
     rocket::build()
             .manage(Mutex::new(HashMap::<String, Account>::new()))
             .mount("/", rocket::routes![index, 

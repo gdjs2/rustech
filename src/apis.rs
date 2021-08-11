@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use futures::lock::Mutex;
-use log::info;
+// use log::info;
 use rocket::fs::NamedFile;
 use rocket::{State, response::status::Unauthorized, serde::json};
 use super::structures::*;
@@ -20,7 +20,7 @@ pub async fn cas_login(
     password: &str, 
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<String, Unauthorized<String>> {
-    info!("cas_login {}", username);
+    // info!("cas_login {}", username);
 
     if login(username, password, client_storage)
         .await?
@@ -72,7 +72,7 @@ pub async fn semester_gpa(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<StudentGPA>, Unauthorized<String>> {
 
-    info!("semester_gpa {}", username);
+    // info!("semester_gpa {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -115,7 +115,7 @@ pub async fn courses_grades(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<CourseGrade>>, Unauthorized<String>> {
 
-    info!("courses_grades {}", username);
+    // info!("courses_grades {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -283,7 +283,7 @@ pub async fn selected_courses(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<SelectedCourse>>, Unauthorized<String>> {
 
-    info!("selected_courses {}", username);
+    // info!("selected_courses {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -353,7 +353,7 @@ pub async fn available_courses(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<AvailableCourse>>, Unauthorized<String>> {
 
-    info!("available_courses {}", username);
+    // info!("available_courses {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -434,7 +434,7 @@ pub async fn select_course(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
-    info!("select_course {}", username);
+    // info!("select_course {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -481,7 +481,7 @@ pub async fn drop_course(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
-    info!("drop_course {}", username);
+    // info!("drop_course {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -521,7 +521,7 @@ pub async fn update_points(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
-    info!("update_points {}", username);
+    // info!("update_points {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -559,7 +559,7 @@ pub async fn course_outline(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
-    info!("course_outline {}", username);
+    // info!("course_outline {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -590,7 +590,7 @@ pub async fn course_table(
     client_storage: &State<Mutex<HashMap<String, Account>>>,
 ) -> Result<json::Json<Vec<CourseTableItem>>, Unauthorized<String>> {
 
-    info!("course_table {}", username);
+    // info!("course_table {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
