@@ -77,6 +77,12 @@ pub struct AvailableCourse {
     pub conflict_courses: Option<String>,
 }
 
+#[derive(Serialize)]
+pub struct CurrentSemester {
+    pub semester_year: String,
+    pub semester_no: String,
+}
+
 pub struct Account {
     pub hash_salt: Option<(
         [u8; super::encrypt::CREDENTIAL_LEN], 

@@ -560,6 +560,41 @@ pub async fn course_outline(
     Ok(json::Json(v["content"]["kcdgbentity"]["kczwjj"].to_owned()))
 }
 
+#[rocket::get("/current_semester?<username>&<password>")]
+pub async fn current_semester(
+    username: &str,
+    password: &str,
+    client_storage: &State<Mutex<HashMap<String, Account>>>
+) -> Result<json::Json<CurrentSemester>, Unauthorized<String>> {
+
+    let tis_login_result = tis_login(username, password, client_storage).await?;
+    if !tis_login_result { return Err(Unauthorized(None)); }
+
+    let client_storage = client_storage.lock().await;
+    let client = &client_storage.get(username).unwrap().client;
+
+    let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    // post_form.insert("p_pylx", "1");
+    post_form.insert("mxpylx", "1");
+
+    let v: serde_json::Value = client.post(CURRENT_SEMESTER_URL)
+                                    .form(&post_form)
+                                    .send()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                    .json::<serde_json::Value>()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+
+    println!("{:?}", v);
+    let current_semester = CurrentSemester {
+        semester_year: v["p_xn"].as_str().unwrap().to_owned(),
+        semester_no: v["p_xq"].as_str().unwrap().to_owned(),
+    };
+
+    Ok(json::Json(current_semester))
+}
+
 #[cfg(test)]
 mod tests {
     use futures::lock::Mutex;

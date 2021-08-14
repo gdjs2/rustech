@@ -23,6 +23,7 @@ All the APIs work with GET method with correct username (SID) and password for C
 9. `/drop_course?username=&password=&semester_year=&semester_no=&course_id=`: Drop out the specific class. The requirements for `semester_year` and `semester_no` are the as the one uppon. 退课，将会退掉选定的课程，参数 `semester_year` 和 `semester_no` 需要满足的要求和选课 API 一致。
 10. `/update_points?username=&password=&semester_year=&semester_no=&course_id=&points=`: Update the points for one of your selected course. `points` is the points you want to choose for the specific course. 调整你所选某个科目的选课积分，`points` 参数代表你所想要调整到的积分。
 11. `/course_outline?username=&password=&outline_id=`: Get the outline of specific course, which may be in HTML format. 获取特定课程的课程大纲，课程大纲信息可能是以 HTML 的形式呈现的。
+12. `/current_semester?username=&password=`: Get the current semester_year and semester_no. 获取当前学期信息。
 
 ### Compile & Run 编译及运行
 
