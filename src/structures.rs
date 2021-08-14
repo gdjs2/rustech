@@ -83,6 +83,13 @@ pub struct CurrentSemester {
     pub semester_no: String,
 }
 
+#[derive(Serialize)]
+pub struct CourseTableItem {
+    pub day: u32,
+    pub time: u32,
+    pub course_info: String,
+}
+
 pub struct Account {
     pub hash_salt: Option<(
         [u8; super::encrypt::CREDENTIAL_LEN], 

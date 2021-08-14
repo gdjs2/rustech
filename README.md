@@ -24,6 +24,7 @@ All the APIs work with GET method with correct username (SID) and password for C
 10. `/update_points?username=&password=&semester_year=&semester_no=&course_id=&points=`: Update the points for one of your selected course. `points` is the points you want to choose for the specific course. 调整你所选某个科目的选课积分，`points` 参数代表你所想要调整到的积分。
 11. `/course_outline?username=&password=&outline_id=`: Get the outline of specific course, which may be in HTML format. 获取特定课程的课程大纲，课程大纲信息可能是以 HTML 的形式呈现的。
 12. `/current_semester?username=&password=`: Get the current semester_year and semester_no. 获取当前学期信息。
+13. `/course_table?username=&password=&semester_year=&semester_no=`: Get the course table for specific year. 获取特定年份学期的课程表。
 
 ### Compile & Run 编译及运行
 

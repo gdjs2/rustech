@@ -1,14 +1,17 @@
 use std::collections::HashMap;
+use std::path::Path;
 
 use futures::lock::Mutex;
+// use log::info;
+use rocket::fs::NamedFile;
 use rocket::{State, response::status::Unauthorized, serde::json};
 use super::structures::*;
 use super::urls::*;
 use super::login::*;
 
 #[rocket::get("/")]
-pub async fn index() -> String {
-    String::from("Hello, rustech!\n")
+pub async fn index() -> NamedFile {
+    NamedFile::open(Path::new("./index/index.html")).await.unwrap()
 }
 
 #[rocket::get("/cas_login?<username>&<password>")]
@@ -17,6 +20,8 @@ pub async fn cas_login(
     password: &str, 
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<String, Unauthorized<String>> {
+    // info!("cas_login {}", username);
+
     if login(username, password, client_storage)
         .await?
     {
@@ -67,6 +72,8 @@ pub async fn semester_gpa(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<StudentGPA>, Unauthorized<String>> {
 
+    // info!("semester_gpa {}", username);
+
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
@@ -107,6 +114,8 @@ pub async fn courses_grades(
     password: &str,
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<CourseGrade>>, Unauthorized<String>> {
+
+    // info!("courses_grades {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -274,6 +283,8 @@ pub async fn selected_courses(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<SelectedCourse>>, Unauthorized<String>> {
 
+    // info!("selected_courses {}", username);
+
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
@@ -341,6 +352,8 @@ pub async fn available_courses(
     courses_type: &str,
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<Vec<AvailableCourse>>, Unauthorized<String>> {
+
+    // info!("available_courses {}", username);
 
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
@@ -421,6 +434,8 @@ pub async fn select_course(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
+    // info!("select_course {}", username);
+
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
@@ -466,6 +481,8 @@ pub async fn drop_course(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
+    // info!("drop_course {}", username);
+
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
@@ -504,6 +521,8 @@ pub async fn update_points(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
+    // info!("update_points {}", username);
+
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
@@ -540,6 +559,8 @@ pub async fn course_outline(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<serde_json::Value>, Unauthorized<String>> {
 
+    // info!("course_outline {}", username);
+
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
@@ -567,6 +588,8 @@ pub async fn current_semester(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<CurrentSemester>, Unauthorized<String>> {
 
+    // info!("course_table {}", username);
+
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
@@ -593,6 +616,58 @@ pub async fn current_semester(
     };
 
     Ok(json::Json(current_semester))
+}
+
+#[rocket::get("/course_table?<username>&<password>&<semester_year>&<semester_no>")]
+pub async fn course_table(
+    username: &str,
+    password: &str,
+    semester_year: &str,
+    semester_no: &str,
+    client_storage: &State<Mutex<HashMap<String, Account>>>,
+) -> Result<json::Json<Vec<CourseTableItem>>, Unauthorized<String>> {
+    let tis_login_result = tis_login(username, password, client_storage).await?;
+    if !tis_login_result { return Err(Unauthorized(None)); }
+
+    let client_storage = client_storage.lock().await;
+    let client = &client_storage.get(username).unwrap().client;
+
+    let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    post_form.insert("p_pylx", "1");
+    post_form.insert("mxpylx", "1");
+    post_form.insert("bs", "2");
+    post_form.insert("xn", semester_year);
+    post_form.insert("xq", semester_no);
+
+    let v: serde_json::Value = client.post(COURSE_TABLE_URL)
+                                    .form(&post_form)
+                                    .send()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?
+                                    .json::<serde_json::Value>()
+                                    .await
+                                    .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+
+    #[cfg(debug_assertions)]
+    println!("{:?}", v);
+                                    
+    let mut course_table_items_vec = Vec::<CourseTableItem>::new();
+    let json_array = v.as_array().unwrap();
+    for item in json_array {
+        let key = item["key"].as_str()
+                                .unwrap();
+        let day = key.chars().nth(2).unwrap().to_digit(10).unwrap();
+        let time = key.chars().nth(6).unwrap().to_digit(10).unwrap();
+        let course_table_item = CourseTableItem {
+            day,
+            time,
+            course_info: item["kbxx"].as_str()
+                                    .unwrap()
+                                    .to_owned(),
+        };
+        course_table_items_vec.push(course_table_item);
+    }
+    Ok(json::Json(course_table_items_vec))
 }
 
 #[cfg(test)]

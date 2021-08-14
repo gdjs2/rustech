@@ -6,6 +6,8 @@ use rustech::structures::Account;
 
 #[rocket::launch]
 fn rocket() -> _ {
+    // simple_logging::log_to_file("./log.txt", log::LevelFilter::Info)
+    //                 .unwrap();
     rocket::build()
             .manage(Mutex::new(HashMap::<String, Account>::new()))
             .mount("/", rocket::routes![index, 
@@ -20,5 +22,6 @@ fn rocket() -> _ {
                                                     drop_course,
                                                     update_points,
                                                     course_outline,
-                                                    current_semester])
+                                                    current_semester,
+                                                    course_table])
 }

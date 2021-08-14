@@ -1,12 +1,12 @@
 [package]
 name = "rustech"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = { version = "0.5.0-rc.1", features = ["json"] }
+rocket = { version = "0.5.0-rc.1", features = ["json", "tls"] }
 reqwest = { version = "0.11", features = ["cookies", "gzip", "json"] }
 scraper = "0.12.0"
 serde_json = "1.0.64"
@@ -14,3 +14,5 @@ serde = "1.0.126"
 futures = "*"
 ring = "*"
 data-encoding = "2.3.2"
+log = "*"
+simple-logging = "*"
