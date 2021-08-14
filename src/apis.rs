@@ -588,8 +588,6 @@ pub async fn current_semester(
     client_storage: &State<Mutex<HashMap<String, Account>>>
 ) -> Result<json::Json<CurrentSemester>, Unauthorized<String>> {
 
-    // info!("course_table {}", username);
-
     let tis_login_result = tis_login(username, password, client_storage).await?;
     if !tis_login_result { return Err(Unauthorized(None)); }
 
@@ -608,7 +606,7 @@ pub async fn current_semester(
                                     .json::<serde_json::Value>()
                                     .await
                                     .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
-
+    #[cfg(debug_assertions)]
     println!("{:?}", v);
     let current_semester = CurrentSemester {
         semester_year: v["p_xn"].as_str().unwrap().to_owned(),
@@ -633,8 +631,6 @@ pub async fn course_table(
     let client = &client_storage.get(username).unwrap().client;
 
     let mut post_form = std::collections::HashMap::<&str, &str>::new();
-    post_form.insert("p_pylx", "1");
-    post_form.insert("mxpylx", "1");
     post_form.insert("bs", "2");
     post_form.insert("xn", semester_year);
     post_form.insert("xq", semester_no);
