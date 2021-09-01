@@ -306,7 +306,7 @@ pub async fn selected_courses(
                         .json::<serde_json::Value>()
                         .await
                         .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
-    println!("{:?}", v);
+    // println!("{:?}", v);
     let selected_courses_value = v["yxkcList"].as_array().unwrap();
     let mut selected_courses_vec = Vec::<SelectedCourse>::new();
 
@@ -374,6 +374,7 @@ pub async fn available_courses(
         _ => ""
     };
 
+    post_form.insert("p_pylx", "1");
     post_form.insert("p_xkfsdm", code_p_xkfsdm);
     post_form.insert("p_xn", semester_year);
     post_form.insert("p_xq", semester_no);
@@ -599,7 +600,7 @@ pub async fn current_semester(
     let client = &client_storage.get(username).unwrap().client;
 
     let mut post_form = std::collections::HashMap::<&str, &str>::new();
-    // post_form.insert("p_pylx", "1");
+    post_form.insert("p_pylx", "1");
     post_form.insert("mxpylx", "1");
 
     let v: serde_json::Value = client.post(CURRENT_SEMESTER_URL)
