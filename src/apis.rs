@@ -292,9 +292,12 @@ pub async fn selected_courses(
     let client = &client_storage.get(username).unwrap().client;
 
     let mut post_form = std::collections::HashMap::<&str, &str>::new();
+    post_form.insert("p_pylx", "1");
     post_form.insert("p_xkfsdm", "yixuan");
     post_form.insert("p_xn", semester_year);
     post_form.insert("p_xq", semester_no);
+    // post_form.insert("p_dqxn", semester_year);
+    // post_form.insert("p_dqxq", semester_no);
     let v = client.post(SELECTED_COURSES_URL)
                         .form(&post_form)
                         .send()
@@ -303,6 +306,7 @@ pub async fn selected_courses(
                         .json::<serde_json::Value>()
                         .await
                         .map_err(|_| Unauthorized(Some("Unable to send the login redirect request to CAS".to_owned())))?;
+    println!("{:?}", v);
     let selected_courses_value = v["yxkcList"].as_array().unwrap();
     let mut selected_courses_vec = Vec::<SelectedCourse>::new();
 
