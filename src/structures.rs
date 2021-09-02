@@ -67,7 +67,7 @@ pub struct AdvancedCourse {
 pub struct SelectedCourse {
     pub advanced_course: AdvancedCourse,
     pub available: bool,
-    pub points: u32,
+    pub points: Option<u32>,
 }
 
 #[derive(Serialize)]

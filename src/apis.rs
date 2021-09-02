@@ -340,7 +340,13 @@ pub async fn selected_courses(
                 "1" => { true },
                 _ => {false}
             },
-            points: value["xkxs"].as_str().unwrap().parse::<u32>().unwrap(),
+            points: {
+                if value["xkxs"].is_null() {
+                    None
+                } else {
+                    Some(value["xkxs"].as_str().unwrap().parse::<u32>().unwrap())
+                }
+            }
         };
         selected_courses_vec.push(course);
     }
